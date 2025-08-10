@@ -1,0 +1,63 @@
+# Sample configuration for ygai
+# Copy this file to .ygai/config.yaml in your home directory or current directory
+
+model:
+  # Default model configuration (mandatory)
+  default:
+    provider: "@langchain/openai"
+    model: "gpt-4"
+    # Replace with your actual API key
+    apiKey: "your-openai-api-key"
+    temperature: 0.7
+  
+  # Additional model configurations
+  anthropic:
+    provider: "@langchain/anthropic"
+    model: "claude-3-7-sonnet-202502219"
+    # Replace with your actual API key
+    apiKey: "your-anthropic-api-key"
+    temperature: 0.7
+  
+  # Example of a openrouter
+  openrouter-deepseek:
+    provider: "@langchain/openai"
+    model: "deepseek/deepseek-chat-v3-0324:free"
+    # Replace with your actual API key and endpoint
+    apiKey: "your-openrouter-key"
+    configuration: 
+      baseURL: https://openrouter.ai/api/v1
+  # Example of local model configuration (development only)
+  # WARNING: agent:unsecure disables certificate checking - use only for development with local models
+  local-model:
+    provider: "@langchain/openai"
+    model: "llama-3.1-8b-instruct"
+    apiKey: "not-needed-for-local"
+    configuration:
+      baseURL: "http://localhost:1234/v1"
+      agent: unsecure  # Disables HTTPS certificate checking - DEVELOPMENT ONLY
+
+prompts:
+  # Default prompt configuration
+  default:
+    system: "You are a helpful assistant. Respond to the user's request in a clear and concise manner."
+  # Translate prompt
+  translate:
+    short: t
+    system: "Translate this text to {language}. Respond with only the translated text, no explanations or additional text."
+  
+  # Summarize prompt
+  summarize:
+    short: s
+    system: "Summarize the following text or a files in the context in a concise manner. Focus on the key points and main ideas."
+  
+  # Code prompt
+  code:
+    short: c
+    system: "You are a coding assistant. Provide clean, well-documented code examples in response to the user's request. Include explanations where helpful."
+  sh:
+    system: "Provide only zsh code to be executed base on user request."
+  # Date prompt
+  date:
+    short: d
+    system: "You are a system utility. Respond with only the requested information in JSON format."
+    user: "Provide the current date and time."

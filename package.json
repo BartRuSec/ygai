@@ -1,0 +1,57 @@
+{
+  "name": "ygai",
+  "version": "0.0.1",
+  "description": "Yet Another Gen AI CLI Tool",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BartRuSec/ygai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BartRuSec/ygai/issues"
+  },
+  "homepage": "https://github.com/BartRuSec/ygai#readme",
+  "bin": {
+    "ygai": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/cli.js",
+    "start": "node dist/cli.js",
+    "dev": "ts-node src/cli.ts",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean",
+    "test": "vitest run src/**/*.test.ts"
+  },
+  "keywords": [
+    "cli",
+    "ai",
+    "llm",
+    "langchain"
+  ],
+  "author": "BartRuSec",
+  "license": "MPL-2.0",
+  "dependencies": {
+    "@langchain/core": "^0.3.5",
+    "@types/uuid": "^10.0.0",
+    "commander": "^11.1.0",
+    "exceljs": "^4.4.0",
+    "js-yaml": "^4.1.0",
+    "mammoth": "^1.9.1",
+    "officeparser": "^5.2.0",
+    "pdf-parse": "^1.1.1",
+    "remark": "^15.0.1",
+    "remark-stringify": "^11.0.0",
+    "turndown": "^7.2.0",
+    "uuid": "^11.1.0",
+    "winston": "^3.10.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.19.9",
+    "rimraf": "^6.0.1",
+    "shx": "^0.4.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.6",
+    "vitest": "^3.2.4"
+  }
+}

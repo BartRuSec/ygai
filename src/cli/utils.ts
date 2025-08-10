@@ -1,0 +1,32 @@
+import { Command } from 'commander';
+import { loadConfig } from '../config';
+import { setVerbose } from '../utils/logger';
+import logger from '../utils/logger';
+import { CommonOptions } from './prompt-params';
+
+
+
+/**
+ * Set verbose logging if requested
+ * @param options Command options
+ */
+export const handleVerboseLogging = (options: any): void => {
+  if (options.verbose) {
+    setVerbose(true);
+    logger.debug('Verbose logging enabled');
+  }
+};
+/**
+ * Common setup for CLI commands
+ * @param program Commander program instance
+ * @param options Command-specific options
+ * @returns Configuration and model information
+ */
+
+
+export const commonSetup = (program: Command, options: CommonOptions) => {
+  const globalOptions = program.opts();
+  handleVerboseLogging(globalOptions);
+  const config = loadConfig();
+  return config;
+};
