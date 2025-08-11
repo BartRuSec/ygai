@@ -9,6 +9,9 @@ export * from './provider-manager';
 // Export prompt template functions
 export * from './prompt-template';
 
+// Export prompt resolver functions
+export * from './prompt-resolver';
+
 // Cache for model providers
 const modelProviderCache: Record<string, ModelProvider> = {};
 
@@ -18,7 +21,7 @@ const modelProviderCache: Record<string, ModelProvider> = {};
  * @returns The model provider instance
  */
 export const getModelProvider = async (config: ModelConfig): Promise<ModelProvider> => {
-  const cacheKey = `${config.provider}:${config.model}:${config.url || ''}`;
+  const cacheKey = `${config.provider}:${config.models}:${config.url || ''}`;
   
   // Check if the provider is already cached
   if (modelProviderCache[cacheKey]) {
@@ -26,7 +29,7 @@ export const getModelProvider = async (config: ModelConfig): Promise<ModelProvid
   }
   
   // Load the provider
-  logger.debug(`Loading model provider: ${config.provider} (${config.model})`);
+  logger.debug(`Loading model provider: ${config.provider} (${config.models})`);
   const provider = await loadModelProvider(config);
   
   // Cache the provider

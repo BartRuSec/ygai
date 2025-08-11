@@ -1,7 +1,7 @@
 # Sample configuration for ygai
 # Copy this file to .ygai/config.yaml in your home directory or current directory
 
-model:
+models:
   # Default model configuration (mandatory)
   default:
     provider: "@langchain/openai"
@@ -40,24 +40,42 @@ prompts:
   # Default prompt configuration
   default:
     system: "You are a helpful assistant. Respond to the user's request in a clear and concise manner."
+  
   # Translate prompt
   translate:
-    short: t
+    alias: t
     system: "Translate this text to {language}. Respond with only the translated text, no explanations or additional text."
   
   # Summarize prompt
   summarize:
-    short: s
+    alias: s
     system: "Summarize the following text or a files in the context in a concise manner. Focus on the key points and main ideas."
   
   # Code prompt
   code:
-    short: c
+    alias: c
     system: "You are a coding assistant. Provide clean, well-documented code examples in response to the user's request. Include explanations where helpful."
+  
+  # Shell command prompt
   sh:
     system: "Provide only zsh code to be executed base on user request."
+  
   # Date prompt
   date:
-    short: d
+    alias: d
     system: "You are a system utility. Respond with only the requested information in JSON format."
     user: "Provide the current date and time."
+  
+  # Example of file-based prompts
+  file-example:
+    alias: fe
+    system:
+      file: "./prompts/system.txt"
+    user:
+      file: "./prompts/user.md"
+  
+  # Mixed format example
+  mixed-example:
+    system: "You are a helpful assistant."
+    user:
+      file: "~/prompts/user-template.txt"

@@ -1,6 +1,6 @@
 # Yet Another Gen AI CLI Tool (ygai)
 
-A command-line tool written in TypeScript for communication with LLMs via the command line. This tool has been created with the help of various LLM models and the Cline VSCode extension. The main goal is to experiment with various models and prompts directly from the command line interface using the LangChain.js library.
+A command-line tool written in TypeScript for communication with LLMs via the command line. The main goal is to experiment with various models and prompts directly from the command line interface using the LangChain.js library.
 
 ## Prerequisites
 
@@ -27,6 +27,7 @@ A command-line tool written in TypeScript for communication with LLMs via the co
   - PowerPoint files (`.pptx`)
 - Variable substitution in prompts
 - Customizable system and user prompts
+- File-based prompt support (load prompts from external files)
 
 ## Installation
 
@@ -44,7 +45,7 @@ The tool reads configuration from the following locations (in order of precedenc
 Example configuration (see `sample-config.yaml` for a complete reference):
 
 ```yaml
-model:
+models:
   # Default model configuration (mandatory)
   default:
     provider: "@langchain/openai"
@@ -75,7 +76,7 @@ model:
     apiKey: "not-needed-for-local"
     configuration:
       baseURL: "http://localhost:1234/v1"
-      agent: unsecure  # Disables HTTPS certificate checking - DEVELOPMENT ONLY
+      httpAgent: unsecure  # Disables HTTPS certificate checking - DEVELOPMENT ONLY
 
 prompts:
   # Default prompt configuration
@@ -84,27 +85,117 @@ prompts:
   
   # Translate prompt
   translate:
-    short: t
+    alias: t
     system: "Translate this text to {language}. Respond with only the translated text, no explanations or additional text."
   
   # Summarize prompt
   summarize:
-    short: s
+    alias: s
     system: "Summarize the following text or files in the context in a concise manner. Focus on the key points and main ideas."
   
   # Code prompt
   code:
-    short: c
+    alias: c
     system: "You are a coding assistant. Provide clean, well-documented code examples in response to the user's request. Include explanations where helpful."
   
   # Date prompt
   date:
-    short: d
+    alias: d
     system: "You are a system utility. Respond with only the requested information in JSON format."
     user: "Provide the current date and time."
+  
+  # Example of file-based prompts
+  file-example:
+    alias: fe
+    system:
+      file: "./prompts/system.txt"
+    user:
+      file: "./prompts/user.md"
+  
+  # Mixed format example
+  mixed-example:
+    system: "You are a helpful assistant."
+    user:
+      file: "~/prompts/user-template.txt"
 ```
 
 For a complete configuration example, refer to the `sample-config.yaml` file in the project root.
+
+### Model Configuration Structure
+
+Model configurations should follow the object structure specific to each provider as documented in the [LangChain.js Chat Models](https://js.langchain.com/docs/integrations/chat/). Each provider may have different required and optional parameters that should be included in the `model` section of your model config.
+
+For provider-specific configuration options and parameters, please refer to the official LangChain documentation for your chosen provider.
+
+### Variable Substitution in Prompts
+
+The tool supports variable substitution in prompt templates using curly braces `{}`. There are two types of variables available:
+
+1. **Custom variables**: Defined using the `-D` flag (e.g., `-Dlanguage=Polish`)
+2. **Built-in variables**:
+   - `{user_input}`: Contains the user's input text when using a prompt configuration
+
+When you run a command like:
+```bash
+ygai p translate "Hello world!"
+```
+
+The text "Hello world!" becomes available as `{user_input}` in your prompt templates. For example:
+
+```yaml
+prompts:
+  translate:
+    system: "Translate the following text to {language}."
+    user: "Text to translate: {user_input}"
+```
+
+**Important**: If no `user` prompt is specified in the configuration, the entire user input text will be used directly as the user prompt. This allows for flexible prompt configurations where you can either:
+- Define a specific user or system prompt template with `{user_input}` variable
+- Let the user input be used directly as the complete user prompt
+
+This allows you to create reusable prompt templates that can incorporate both the user's input and custom variables.
+
+### File-Based Prompts
+
+The tool supports loading prompts from external files, which is useful for managing large or complex prompts. You can specify file references for both `system` and `user` prompts using the following syntax:
+
+```yaml
+prompts:
+  # File-based prompts
+  file-example:
+    system:
+      file: "./prompts/system.txt"
+    user:
+      file: "./prompts/user.md"
+  
+  # Mixed format (inline system, file-based user)
+  mixed-example:
+    system: "You are a helpful assistant."
+    user:
+      file: "~/prompts/user-template.txt"
+```
+
+#### File Path Resolution
+
+File paths support several formats:
+
+- **Relative paths**: `./prompts/system.txt` (relative to the config file location)
+- **Absolute paths**: `/home/user/prompts/system.txt`
+- **Home directory expansion**: `~/.ygai/prompts/system.txt` (cross-platform)
+
+#### Example File Structure
+
+```
+.ygai/
+├── config.yaml
+└── prompts/
+    ├── system.txt
+    ├── user.md
+    └── templates/
+        └── coding-assistant.txt
+```
+
+The prompt files can contain any text content and support the same variable substitution as inline prompts.
 
 ## Usage
 
@@ -178,6 +269,27 @@ ygai l upgrade
 ygai l clean
 ```
 
+#### Manual Provider Installation
+
+As an alternative to using the `llms` command, you can manually install LLM providers directly in the global `.ygai` directory:
+
+```bash
+# Navigate to the global .ygai directory (usually in your home directory)
+cd ~/.ygai
+
+# Initialize npm if not already done
+npm init -y
+# or echo {}>package.json
+
+# Install specific providers manually
+npm install @langchain/openai
+npm install @langchain/anthropic
+npm install @langchain/google-genai
+# ... install other providers as needed
+```
+
+This manual approach gives you more control over which specific versions of providers are installed and can be useful for development or when you need to install providers that aren't automatically managed by the CLI.
+
 ### Global Options
 
 ```bash
@@ -219,6 +331,10 @@ Whether you want to:
 - Fix existing issues
 
 I'd love to hear from you. Please reach out to discuss how you can contribute to making ygai better.
+
+## Development Tools
+
+This tool has been developed in a hybrid mode, where the core architecture and logic were hand-crafted, while some parts of the implementation were created with the assistance of various LLM models and the Cline VSCode extension.
 
 ## License
 

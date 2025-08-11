@@ -2,11 +2,8 @@ import { ModelConfig } from '../config/schema';
 import { ModelProvider } from './base';
 import logger from '../utils/logger';
 import { getChatModelClassName } from './provider-mapping';
-import { createAndFormatChatPrompt, createSimpleMessages } from './prompt-template';
-import { BaseMessage, HumanMessage } from '@langchain/core/messages';
-import { FileContext } from '../file-handlers';
-import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
-import { log } from 'console';
+import { createSimpleMessages } from './prompt-template';
+import { BaseMessage } from '@langchain/core/messages';
 import https from 'https';
 
 const unsecureAgent=new https.Agent({
@@ -16,6 +13,8 @@ const configHttpAgent=obj => {
   if (obj!==undefined)
   return { ...obj, 
      agent: (obj.agent !=undefined && obj.agent === 'usnecure') ? unsecureAgent: obj["agent"] ,
+     httpAgent: (obj.httpAgent !=undefined && obj.httpAgent === 'usnecure') ? unsecureAgent: obj["httpAgent"] ,
+     httpsAgent: (obj.httpsAgent !=undefined && obj.httpsAgent === 'usnecure') ? unsecureAgent: obj["httpsAgent"] ,
   }
 }
   ;
