@@ -7,7 +7,7 @@ import { BaseMessage } from '@langchain/core/messages';
 import https from 'https';
 
 const unsecureAgent=new https.Agent({
-  rejectUnauthorized:true
+  rejectUnauthorized:false
 })
 const configHttpAgent=obj => {
   if (obj!==undefined)
