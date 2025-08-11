@@ -14,7 +14,7 @@ export const configureProgram = (): Command => {
 
   program
     .name('ygai')
-    .description('Yet Another Gen AI CLI Tool')
+    .description(`Yet Another Gen AI CLI Tool (${version})`)
     .version(version)
     .option('-v, --verbose', 'Enable verbose logging')
     .allowUnknownOption(true); // Allow unknown options for -D variables

@@ -51,17 +51,49 @@ export const getSessionPath = (baseDir: string, sessionName: string): string => 
 };
 
 /**
- * Checks if a file exists
+ * Resolves a file path, handling home directory expansion and relative paths
+ * @param filePath The file path to resolve
+ * @param basePath Optional base path for relative path resolution (defaults to current working directory)
+ * @returns The resolved absolute path
  */
-export const fileExists = (filePath: string): boolean => {
-  return fs.existsSync(filePath);
+export const resolvePath = (filePath: string, basePath?: string): string => {
+  // Handle home directory expansion (cross-platform)
+  if (filePath.startsWith('~/')) {
+    return path.join(getHomeDirectory(), filePath.slice(2));
+  }
+  
+  // If already absolute, return as-is
+  if (path.isAbsolute(filePath)) {
+    return filePath;
+  }
+  
+  // Handle relative paths
+  const base = basePath || process.cwd();
+  return path.resolve(base, filePath);
 };
 
 /**
- * Reads a file as text
+ * Checks if a file exists (with path resolution support)
+ * @param filePath The file path to check (supports ~/ expansion and relative paths)
+ * @param basePath Optional base path for relative path resolution
+ * @returns True if file exists, false otherwise
  */
-export const readFile = (filePath: string): string => {
-  return fs.readFileSync(filePath, 'utf-8');
+export const fileExists = (filePath: string, basePath?: string): boolean => {
+  const resolvedPath = resolvePath(filePath, basePath);
+  return fs.existsSync(resolvedPath);
+};
+
+/**
+ * Reads a file as text (with path resolution support)
+ * @param filePath The file path to read (supports ~/ expansion and relative paths)
+ * @param basePath Optional base path for relative path resolution
+ * @returns The file content as a string
+ * @throws Error if file cannot be read
+ */
+export const readFile = (filePath: string, basePath?: string): string => {
+  const resolvedPath = resolvePath(filePath, basePath);
+  logger.debug(`Reading file: ${filePath} -> ${resolvedPath}`);
+  return fs.readFileSync(resolvedPath, 'utf-8');
 };
 
 /**

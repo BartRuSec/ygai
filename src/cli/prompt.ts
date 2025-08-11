@@ -48,7 +48,7 @@ export const configurePromptCommand = (program: Command): Command => {
 
   
       } catch (error) {
-        logger.error(`Error: ${error}`);
+        logger.error(`${error}`);
         process.exit(1);
       }
     });

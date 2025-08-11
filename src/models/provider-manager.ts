@@ -46,17 +46,20 @@ export const installProviderPackage = (provider: string): boolean => {
     
     // Install the provider package in the home directory
     logger.debug(`Installing package: ${provider}`);
-    
+    logger.debug(`ygai directory ${PROVIDERS_DIR}`)
     // Create the providers directory if it doesn't exist
     fs.mkdirSync(PROVIDERS_DIR, { recursive: true });
     
     // Initialize package.json if it doesn't exist
-    if (!fs.existsSync(PACKAGE_JSON_PATH)) {
-      execSync('npm init -y', {
-        stdio: 'inherit',
-        cwd: PROVIDERS_DIR
-      });
-    }
+      if (!fs.existsSync(PACKAGE_JSON_PATH)) {
+        const packageJsonContent = {
+            name: "ygai-providers",
+            version: "1.0.0",
+            description: "YGAI provider packages",
+            private: true
+        };
+        fs.writeFileSync(PACKAGE_JSON_PATH, JSON.stringify(packageJsonContent, null, 2));
+      }
     
     // Install the package
     execSync(`npm install ${provider}`, { 

@@ -4,6 +4,7 @@ import { getModelConfig, getPromptConfig } from '../config';
 import logger, { setVerbose } from '../utils/logger';
 import { Config } from '../config/schema';
 import { FileContext, readFileAsMarkdown } from '../file-handlers';
+import { resolvePrompts, PromptResolutionError } from '../models';
 
 
 export interface CommonOptions {
@@ -14,8 +15,15 @@ export interface CommonOptions {
   dryRun?: boolean;
 }
 
+export interface ResolvedPromptConfig {
+  alias?: string;
+  system?: string; // Always resolved to string
+  user?: string; // Always resolved to string
+  max_tokens?: number;
+}
+
 export interface PromptExecutionOptions {
-  promptConfig?: PromptConfig;
+  promptConfig?: ResolvedPromptConfig;
   files?: FileContext[];
   stream: boolean;
   dryRun: boolean;
@@ -62,28 +70,45 @@ export async function processPromptArgs(
   
 
   
+  // Get the appropriate prompt configuration
+  let promptConfig = getPromptConfig(config, promptName);
+  const isPromptConfigValid = promptConfig ? true : false;
+  if (!isPromptConfigValid) promptConfig=getPromptConfig(config, 'default');
+
+  // Resolve file-based prompts and create resolved config
+  let resolvedPromptConfig: ResolvedPromptConfig | undefined;
+  if (promptConfig) {
+    try {
+      const resolvedPrompts = resolvePrompts(promptConfig);
+      resolvedPromptConfig = {
+        alias: promptConfig.alias,
+        system: resolvedPrompts.system,
+        user: resolvedPrompts.user,
+        max_tokens: promptConfig.max_tokens
+      };
+    } catch (error) {
+      if (error instanceof PromptResolutionError) {
+        throw new Error(`Prompt resolution failed: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
   // Create base options with common properties
   const executionOptions: PromptExecutionOptions = {
-    promptConfig:getPromptConfig(config, 'default'),
+    promptConfig: resolvedPromptConfig,
     stream: options.stream !== false,
     dryRun: options.dryRun || false,
     model: getModelConfig(config, options.model),
-    variables: options.define,
-    
+    variables: options.define!==undefined? options.define:{},
   };
-  
-  const promptConfig = getPromptConfig(config, promptName);
 
 
-  // If promptConfig is valid, use it; otherwise, use default
-  const isPromptConfigValid = promptConfig ? true : false;
-  if (isPromptConfigValid) {
-    executionOptions.promptConfig = promptConfig;
-  }
   // If systemPrompt is provided, override the system prompt in the config
   if (options.systemPrompt) {
     executionOptions.promptConfig.system = options.systemPrompt;
   }
+  
   let userInput: string | null= null;
   //determine user input based on the promptConfig and arguments
   if (stdinContent) {
@@ -95,18 +120,17 @@ export async function processPromptArgs(
   } else if( !isPromptConfigValid && promptArgs.length > 0) {
     userInput = promptName+promptArgs.join(' ');
   } 
-
-
+    logger.error(`User INPUT ${JSON.stringify(promptConfig)} ${userInput} ${isPromptConfigValid} ${promptName} ${promptArgs}`)
   if (executionOptions.promptConfig.user === undefined) { 
     // If no user prompt is defined in the configuration, use the user input
     if (!userInput) {
-       
         throw new Error('No user input provided and no user prompt defined in the configuration');
     } else  {
         executionOptions.promptConfig.user = userInput;
+        executionOptions.variables.user_input = userInput;
     }
   }  else if (executionOptions.promptConfig.user && userInput) {
-    executionOptions.variables.user_input = userInput;
+      executionOptions.variables.user_input = userInput;
   }
   
    if (options.file) {
@@ -120,6 +144,3 @@ export async function processPromptArgs(
   
     return executionOptions;
   }
-  
-
-

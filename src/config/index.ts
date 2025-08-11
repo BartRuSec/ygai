@@ -2,6 +2,7 @@ import path from 'path';
 import yaml from 'js-yaml';
 import { Config, PromptConfig, validateConfig, ConfigValidationError } from './schema';
 import { fileExists, readFile, getConfigPath, getHomeDirectory } from '../utils/file';
+import { resolvePromptValue } from '../models/prompt-resolver';
 import logger from '../utils/logger';
 
 /**
@@ -67,9 +68,9 @@ export const loadConfig = (): Config => {
  * @returns The model configuration
  * @throws Error if the model configuration doesn't exist
  */
-export const getModelConfig = (config: Config, modelName?: string): Config['model']['default'] => {
+export const getModelConfig = (config: Config, modelName?: string): Config['models']['default'] => {
   const name = modelName || 'default';
-  const modelConfig = config.model[name];
+  const modelConfig = config.models[name];
   
   if (!modelConfig) {
     throw new Error(`Model configuration "${name}" not found`);
@@ -97,7 +98,7 @@ export const getPromptConfig = (config: Config, promptName?: string): PromptConf
 
   
   for (const [name, prompt] of Object.entries(config.prompts)) {
-    if (prompt && prompt.short === promptName) {
+    if (prompt && prompt.alias === promptName) {
       return prompt;
     }
   }
@@ -131,7 +132,10 @@ export const getSystemPrompt = (
   
   // Use the system prompt from the configuration if available
   if (promptConfig?.system) {
-    return promptConfig.system;
+    const resolvedPrompt = resolvePromptValue(promptConfig.system);
+    if (resolvedPrompt) {
+      return resolvedPrompt;
+    }
   }
   
   // Use a default system prompt if none is provided
@@ -162,18 +166,12 @@ export const getUserPrompt = (
   
   // Use the user prompt from the configuration if available
   if (promptConfig?.user) {
-    return promptConfig.user;
+    const resolvedPrompt = resolvePromptValue(promptConfig.user);
+    if (resolvedPrompt) {
+      return resolvedPrompt;
+    }
   }
   
   // Return an empty string if no user prompt is provided
   return '';
 };
-
-
-/**
- * Finds a prompt configuration by its short name
- * @param config The configuration object
- * @param shortName The short name to look for
- * @returns The name of the prompt configuration or undefined if not found
- */
-

@@ -69,7 +69,7 @@ export const configureProvidersCommand = (program: Command): Command => {
           }
         }
       } catch (error) {
-        logger.error(`Error: ${error}`);
+        logger.error(`${error}`);
         process.exit(1);
       }
     });
@@ -105,7 +105,7 @@ export const configureProvidersCommand = (program: Command): Command => {
         
         console.log('\nAll providers upgraded successfully');
       } catch (error) {
-        logger.error(`Error: ${error}`);
+        logger.error(`${error}`);
         process.exit(1);
       }
     });
@@ -141,7 +141,7 @@ export const configureProvidersCommand = (program: Command): Command => {
         
         console.log('\nAll providers removed successfully');
       } catch (error) {
-        logger.error(`Error: ${error}`);
+        logger.error(`${error}`);
         process.exit(1);
       }
     });
