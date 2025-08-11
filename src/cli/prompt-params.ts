@@ -120,7 +120,7 @@ export async function processPromptArgs(
   } else if( !isPromptConfigValid && promptArgs.length > 0) {
     userInput = promptName+promptArgs.join(' ');
   } 
-    logger.error(`User INPUT ${JSON.stringify(promptConfig)} ${userInput} ${isPromptConfigValid} ${promptName} ${promptArgs}`)
+
   if (executionOptions.promptConfig.user === undefined) { 
     // If no user prompt is defined in the configuration, use the user input
     if (!userInput) {
