@@ -12,9 +12,9 @@ const unsecureAgent=new https.Agent({
 const configHttpAgent=obj => {
   if (obj!==undefined)
   return { ...obj, 
-     agent: (obj.agent !=undefined && obj.agent === 'usnecure') ? unsecureAgent: obj["agent"] ,
-     httpAgent: (obj.httpAgent !=undefined && obj.httpAgent === 'usnecure') ? unsecureAgent: obj["httpAgent"] ,
-     httpsAgent: (obj.httpsAgent !=undefined && obj.httpsAgent === 'usnecure') ? unsecureAgent: obj["httpsAgent"] ,
+     agent: (obj.agent !=undefined && obj.agent === 'unsecure') ? unsecureAgent: obj["agent"] ,
+     httpAgent: (obj.httpAgent !=undefined && obj.httpAgent === 'unsecure') ? unsecureAgent: obj["httpAgent"] ,
+     httpsAgent: (obj.httpsAgent !=undefined && obj.httpsAgent === 'unsecure') ? unsecureAgent: obj["httpsAgent"] ,
   }
 }
   ;
@@ -49,7 +49,7 @@ export const createLangChainProvider = async (
 
 
   // Add baseUrl/endpoint if provided
-
+  logger.debug(`Model params ${JSON.stringify(modelParams)}`)
   
   const model = new ModelClass(modelParams);
   
