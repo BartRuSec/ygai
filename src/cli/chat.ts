@@ -47,8 +47,8 @@ export const configureChatCommand = (program: Command): Command => {
 
         );
         logger.debug('returning base options',executeOptions);
-
         await executePrompt(executeOptions,true)
+        process.exit(0);
       } catch (error) {
         logger.error(`${error}`);
         process.exit(1);

@@ -67,6 +67,10 @@ models:
     apiKey: "your-openrouter-key"
     configuration: 
       baseURL: https://openrouter.ai/api/v1
+      # Optional configuration for http agent (just as a example - typically not needed)
+      httpAgent:
+       timeout: 3000
+
   
   # Example of local model configuration (development only)
   # WARNING: agent:unsecure disables certificate checking - use only for development with local models
@@ -76,7 +80,7 @@ models:
     apiKey: "not-needed-for-local"
     configuration:
       baseURL: "http://localhost:1234/v1"
-      httpAgent: unsecure  # Disables HTTPS certificate checking - DEVELOPMENT ONLY
+      httpAgent: unsecure  # Disables HTTPS certificate checking - DEVELOPMENT ONLY (you can use rejectUnauthorized: false as well)
 
 prompts:
   # Default prompt configuration

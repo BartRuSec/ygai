@@ -3,6 +3,7 @@ import yaml from 'js-yaml';
 import { Config, PromptConfig, validateConfig, ConfigValidationError } from './schema';
 import { fileExists, readFile, getConfigPath, getHomeDirectory } from '../utils/file';
 import { resolvePromptValue } from '../models/prompt-resolver';
+import { enhanceModelConfig } from './enhancers';
 import logger from '../utils/logger';
 
 /**
@@ -65,7 +66,7 @@ export const loadConfig = (): Config => {
  * Gets a model configuration by name
  * @param config The configuration object
  * @param modelName The name of the model configuration to get
- * @returns The model configuration
+ * @returns The enhanced model configuration
  * @throws Error if the model configuration doesn't exist
  */
 export const getModelConfig = (config: Config, modelName?: string): Config['models']['default'] => {
@@ -76,7 +77,8 @@ export const getModelConfig = (config: Config, modelName?: string): Config['mode
     throw new Error(`Model configuration "${name}" not found`);
   }
   
-  return modelConfig;
+  // Apply all enhancements to the model configuration
+  return enhanceModelConfig(modelConfig);
 };
 
 

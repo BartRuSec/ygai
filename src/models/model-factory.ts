@@ -4,20 +4,6 @@ import logger from '../utils/logger';
 import { getChatModelClassName } from './provider-mapping';
 import { createSimpleMessages } from './prompt-template';
 import { BaseMessage } from '@langchain/core/messages';
-import https from 'https';
-
-const unsecureAgent=new https.Agent({
-  rejectUnauthorized:false
-})
-const configHttpAgent=obj => {
-  if (obj!==undefined)
-  return { ...obj, 
-     agent: (obj.agent !=undefined && obj.agent === 'unsecure') ? unsecureAgent: obj["agent"] ,
-     httpAgent: (obj.httpAgent !=undefined && obj.httpAgent === 'unsecure') ? unsecureAgent: obj["httpAgent"] ,
-     httpsAgent: (obj.httpsAgent !=undefined && obj.httpsAgent === 'unsecure') ? unsecureAgent: obj["httpsAgent"] ,
-  }
-}
-  ;
 /**
  * Creates a model provider instance using LangChain's ChatPromptTemplate
  * @param module The dynamically loaded module
@@ -38,20 +24,10 @@ export const createLangChainProvider = async (
   
 
   // Create an instance of the chat model
-
-  const modelParams = {
-    ...config,
-    modelName: config.model,
-    temperature: config.temperature ?? 0.7,
-    clientOptions:configHttpAgent(config.clientOptions),
-    configuration:configHttpAgent(config.configuration)
-  };
-
-
-  // Add baseUrl/endpoint if provided
-  logger.debug(`Model params ${JSON.stringify(modelParams)}`)
+  // Config is already enhanced with all defaults and HTTP agents
+  logger.debug(`Model params ${JSON.stringify(config)}`)
   
-  const model = new ModelClass(modelParams);
+  const model = new ModelClass(config);
   
   // Create and return a provider adapter
   return {
