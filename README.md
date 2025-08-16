@@ -159,6 +159,110 @@ prompts:
 
 This allows you to create reusable prompt templates that can incorporate both the user's input and custom variables.
 
+### Hooks System
+
+The tool supports pre and post-execution hooks that allow you to run custom JavaScript code before and after prompt execution. This enables advanced functionality like input validation, preprocessing, output validation, logging, and integration with external systems.
+
+#### Hook Configuration
+
+Hooks are configured in the prompt configuration using the `pre` and `post` fields:
+
+```yaml
+prompts:
+  translate:
+    vars: [language]  # Required variables
+    alias: t
+    system: "Translate this text to {language}. Respond with only the translated text."
+    pre:
+      file: "./examples/hooks/translatePre.js"
+      function: "prepareText"
+    post:
+      file: "./examples/hooks/translatePost.js"
+      function: "validateTranslation"
+```
+
+#### Hook Structure
+
+Hook files should export functions that accept a context object and return the modified context:
+
+```javascript
+// Pre-hook example
+function prepareText(context) {
+  // Validate required variables
+  if (!context.variables.language) {
+    throw new Error('Language variable is required');
+  }
+  
+  // Modify variables or prompt configuration
+  context.variables.language = context.variables.language.toLowerCase();
+  
+  // Access user input
+  if (context.userInput.includes('technical')) {
+    context.promptConfig.system += ' Use technical terminology.';
+  }
+  
+  return context;
+}
+
+module.exports = { prepareText };
+```
+
+```javascript
+// Post-hook example
+function validateTranslation(context) {
+  // Access the response
+  if (context.response.trim().length === 0) {
+    throw new Error('Translation appears to be empty');
+  }
+  
+  // Log or audit the result
+  console.log(`Translated to ${context.variables.language}`);
+  
+  return context;
+}
+
+module.exports = { validateTranslation };
+```
+
+#### Hook Context
+
+The context object passed to hooks contains:
+
+- `variables`: Object containing all variables (from -D flags and built-ins)
+- `files`: Array of file contexts if files were provided
+- `userInput`: The user's input text (always available, even if empty)
+- `response`: The AI model's response (only available in post-hooks)
+- `promptConfig`: The resolved prompt configuration (can be modified in pre-hooks)
+- `metadata`: Object containing prompt name, model, and timestamp
+
+#### Hook Capabilities
+
+Hooks run in a secure sandbox environment with access to:
+
+- Node.js built-in modules (fs, path, http, etc.)
+- External npm packages (can be required)
+- Console logging (redirected to the main application logger)
+- Timeout protection (5-second execution limit)
+
+#### Required Variables
+
+You can specify required variables that must be provided via `-D` flags:
+
+```yaml
+prompts:
+  translate:
+    vars: [language, format]  # Both language and format are required
+    system: "Translate to {language} in {format} format"
+```
+
+If required variables are missing, the tool will show an error message before execution.
+
+#### Example Hook Files
+
+See the `examples/hooks/` directory for complete hook examples:
+- `translatePre.js`: Input validation and preprocessing
+- `translatePost.js`: Output validation and logging
+
 ### File-Based Prompts
 
 The tool supports loading prompts from external files, which is useful for managing large or complex prompts. You can specify file references for both `system` and `user` prompts using the following syntax:

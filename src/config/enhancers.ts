@@ -1,7 +1,8 @@
+
 import https from 'https';
 import { ModelConfig } from './schema';
 import logger from '../utils/logger';
-
+import { loadDynamicClass } from './dynamic-loader';
 /**
  * Creates an unsecure HTTPS agent that bypasses certificate validation
  * WARNING: Use only for development with local models
@@ -106,7 +107,52 @@ const processDefaultValues = (config: ModelConfig): ModelConfig => {
  * @param config The model configuration to enhance
  * @returns An enhanced model configuration
  */
-export const enhanceModelConfig = (config: ModelConfig): ModelConfig => {
+/**
+ * Recursively processes dynamic class instantiation (_type/_module)
+ * Ensures proper hierarchy resolution where dependencies are resolved first
+ * @param obj Configuration object to process
+ * @param provider Optional provider context from parent configuration
+ * @param loadedModule Optional pre-loaded module to use instead of dynamic import
+ * @returns Processed configuration with classes instantiated
+ */
+export const processDynamicClasses = async (obj: any, provider?: string, loadedModule?: any): Promise<any> => {
+  // Handle primitive types and null
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  // Process arrays
+  if (Array.isArray(obj)) {
+    return Promise.all(obj.map(item => processDynamicClasses(item, provider, loadedModule)));
+  }
+
+  // Extract provider from current level if available
+  const currentProvider = obj.provider || provider;
+
+  // Check if current object needs processing BEFORE processing children
+  if (obj._type || obj._inline) {
+   // logger.debug(`Processing dynamic class/inline for object with keys: ${Object.keys(obj).join(', ')}`);
+    return await loadDynamicClass(obj, currentProvider, loadedModule);
+  }
+
+  // Process objects (depth-first to resolve dependencies first)
+  const processedObj: Record<string, any> = {};
+  
+  // Process each property sequentially to maintain dependency order
+  for (const [key, value] of Object.entries(obj)) {
+   // logger.debug(`Processing property: ${key}`);
+    // Recursively process all properties, passing down the provider context and loaded module
+    processedObj[key] = await processDynamicClasses(value, currentProvider, loadedModule);
+  }
+
+  // Return the processed object with resolved children
+  return processedObj;
+};
+
+
+
+
+export const enhanceModelConfig =  (config: ModelConfig): ModelConfig => {
   logger.debug('Enhancing model configuration');
   
   // Create a deep copy to avoid mutating the original config
@@ -118,9 +164,7 @@ export const enhanceModelConfig = (config: ModelConfig): ModelConfig => {
   // Apply HTTP agent enhancements
   enhancedConfig = processHttpAgents(enhancedConfig);
   
-  // Future enhancements can be added here:
-  // enhancedConfig = processSecuritySettings(enhancedConfig);
-  // enhancedConfig = processPerformanceSettings(enhancedConfig);
+ // Dynamic class enchancer will be perform after module loading
   
   logger.debug('Model configuration enhanced successfully');
   return enhancedConfig;

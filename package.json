@@ -1,6 +1,6 @@
 {
   "name": "ygai",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Yet Another Gen AI CLI Tool",
   "main": "dist/index.js",
   "repository": {
@@ -32,7 +32,6 @@
   "license": "MPL-2.0",
   "dependencies": {
     "@langchain/core": "^0.3.5",
-    "@types/uuid": "^10.0.0",
     "commander": "^11.1.0",
     "exceljs": "^4.4.0",
     "js-yaml": "^4.1.0",
