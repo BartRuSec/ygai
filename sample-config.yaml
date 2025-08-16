@@ -41,10 +41,18 @@ prompts:
   default:
     system: "You are a helpful assistant. Respond to the user's request in a clear and concise manner."
   
-  # Translate prompt
+  # Translate prompt with hooks example
   translate:
+    vars: [language]  # Required variables
     alias: t
     system: "Translate this text to {language}. Respond with only the translated text, no explanations or additional text."
+    # Example hooks (uncomment to use)
+    # pre:
+    #   file: "./examples/hooks/translatePre.js"
+    #   function: "prepareText"
+    # post:
+    #   file: "./examples/hooks/translatePost.js"
+    #   function: "validateTranslation"
   
   # Summarize prompt
   summarize:

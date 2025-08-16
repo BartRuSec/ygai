@@ -1,4 +1,4 @@
-import { PromptConfig, ModelConfig } from './../config/schema';
+import { PromptConfig, ModelConfig, ResolvedPromptConfig } from './../config/schema';
 import fs from 'fs';
 import { getModelConfig, getPromptConfig } from '../config';
 import logger, { setVerbose } from '../utils/logger';
@@ -15,13 +15,6 @@ export interface CommonOptions {
   dryRun?: boolean;
 }
 
-export interface ResolvedPromptConfig {
-  alias?: string;
-  system?: string; // Always resolved to string
-  user?: string; // Always resolved to string
-  max_tokens?: number;
-}
-
 export interface PromptExecutionOptions {
   promptConfig?: ResolvedPromptConfig;
   files?: FileContext[];
@@ -29,7 +22,8 @@ export interface PromptExecutionOptions {
   dryRun: boolean;
   model: ModelConfig;
   variables?: Record<string, any>;
-
+  userInput?: string; // Add userInput to execution options
+  promptName?: string; // Add promptName for hook context
 }
 
 
@@ -75,6 +69,15 @@ export async function processPromptArgs(
   const isPromptConfigValid = promptConfig ? true : false;
   if (!isPromptConfigValid) promptConfig=getPromptConfig(config, 'default');
 
+  // Validate required variables if specified in prompt config
+  if (promptConfig?.vars) {
+    const providedVars = Object.keys(options.define || {});
+    const missingVars = promptConfig.vars.filter(varName => !providedVars.includes(varName));
+    if (missingVars.length > 0) {
+      throw new Error(`Missing required variables: ${missingVars.join(', ')}. Use -D<var>=<value> to provide them.`);
+    }
+  }
+
   // Resolve file-based prompts and create resolved config
   let resolvedPromptConfig: ResolvedPromptConfig | undefined;
   if (promptConfig) {
@@ -84,7 +87,10 @@ export async function processPromptArgs(
         alias: promptConfig.alias,
         system: resolvedPrompts.system,
         user: resolvedPrompts.user,
-        max_tokens: promptConfig.max_tokens
+        max_tokens: promptConfig.max_tokens,
+        vars: promptConfig.vars,
+        pre: promptConfig.pre,
+        post: promptConfig.post
       };
     } catch (error) {
       if (error instanceof PromptResolutionError) {
@@ -101,6 +107,7 @@ export async function processPromptArgs(
     dryRun: options.dryRun || false,
     model: getModelConfig(config, options.model),
     variables: options.define!==undefined? options.define:{},
+    promptName: promptName,
   };
 
 
@@ -121,16 +128,19 @@ export async function processPromptArgs(
     userInput = promptName+promptArgs.join(' ');
   } 
 
+  // Set userInput once in execution options
+  executionOptions.userInput = userInput || '';
+  
+  // Reference the same value in variables (always available, even if empty)
+  executionOptions.variables.user_input = executionOptions.userInput;
+
   if (executionOptions.promptConfig.user === undefined) { 
     // If no user prompt is defined in the configuration, use the user input
     if (!userInput) {
         throw new Error('No user input provided and no user prompt defined in the configuration');
     } else  {
         executionOptions.promptConfig.user = userInput;
-        executionOptions.variables.user_input = userInput;
     }
-  }  else if (executionOptions.promptConfig.user && userInput) {
-      executionOptions.variables.user_input = userInput;
   }
   
    if (options.file) {

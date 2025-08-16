@@ -14,13 +14,28 @@ export interface ModelConfig {
 // Prompt value can be either a string or a file reference
 export type PromptValue = string | { file: string };
 
+// Hook configuration
+export interface HookConfig {
+  file: string; // Path to the hook file
+  function: string; // Function name to execute
+}
+
 // Prompt configuration
 export interface PromptConfig {
   alias?: string; // Short alias for the prompt
   system?: PromptValue; // System prompt template or file reference
   user?: PromptValue; // User prompt template or file reference
   max_tokens?: number; // Maximum tokens for the response
+  vars?: string[]; // Required variables to be provided via -D option
+  pre?: HookConfig; // Pre-execution hook
+  post?: HookConfig; // Post-execution hook
 }
+
+// Resolved prompt configuration (with prompt values resolved to strings)
+export type ResolvedPromptConfig = Omit<PromptConfig, 'system' | 'user'> & {
+  system?: string; // Always resolved to string
+  user?: string; // Always resolved to string
+};
 
 // Main configuration structure
 export interface Config {
@@ -126,6 +141,32 @@ const validatePromptValue = (promptValue: any, fieldName: string, configName: st
 };
 
 /**
+ * Validates a hook configuration
+ * @param hookConfig The hook configuration to validate
+ * @param hookType The type of hook (pre/post)
+ * @param configName The name of the configuration
+ * @throws ConfigValidationError if the configuration is invalid
+ */
+const validateHookConfig = (hookConfig: any, hookType: string, configName: string): void => {
+  if (!hookConfig || typeof hookConfig !== 'object') {
+    throw new ConfigValidationError(`${hookType} hook configuration in "${configName}" must be an object`);
+  }
+
+  if (!hookConfig.file || typeof hookConfig.file !== 'string') {
+    throw new ConfigValidationError(`Missing or invalid "file" in ${hookType} hook configuration "${configName}"`);
+  }
+
+  if (!hookConfig.function || typeof hookConfig.function !== 'string') {
+    throw new ConfigValidationError(`Missing or invalid "function" in ${hookType} hook configuration "${configName}"`);
+  }
+
+  // Validate function name format
+  if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(hookConfig.function)) {
+    throw new ConfigValidationError(`Invalid function name "${hookConfig.function}" in ${hookType} hook configuration "${configName}"`);
+  }
+};
+
+/**
  * Validates a prompt configuration
  * @param promptConfig The prompt configuration to validate
  * @param configName The name of the configuration
@@ -141,4 +182,25 @@ const validatePromptConfig = (promptConfig: any, configName: string): void => {
   // Validate system and user prompt values
   validatePromptValue(promptConfig.system, 'system', configName);
   validatePromptValue(promptConfig.user, 'user', configName);
+
+  // Validate vars array if present
+  if (promptConfig.vars !== undefined) {
+    if (!Array.isArray(promptConfig.vars)) {
+      throw new ConfigValidationError(`"vars" in prompt configuration "${configName}" must be an array`);
+    }
+    promptConfig.vars.forEach((varName: any, index: number) => {
+      if (typeof varName !== 'string') {
+        throw new ConfigValidationError(`Variable at index ${index} in prompt configuration "${configName}" must be a string`);
+      }
+    });
+  }
+
+  // Validate hook configurations if present
+  if (promptConfig.pre) {
+    validateHookConfig(promptConfig.pre, 'pre', configName);
+  }
+
+  if (promptConfig.post) {
+    validateHookConfig(promptConfig.post, 'post', configName);
+  }
 };

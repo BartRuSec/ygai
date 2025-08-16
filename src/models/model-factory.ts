@@ -1,9 +1,11 @@
 import { ModelConfig } from '../config/schema';
 import { ModelProvider } from './base';
 import logger from '../utils/logger';
-import { getChatModelClassName } from './provider-mapping';
-import { createSimpleMessages } from './prompt-template';
+import { getChatModelClassName} from './provider-mapping';
 import { BaseMessage } from '@langchain/core/messages';
+import { processDynamicClasses } from '../config/enhancers';
+import { createSimpleMessages } from './prompt-template';
+
 /**
  * Creates a model provider instance using LangChain's ChatPromptTemplate
  * @param module The dynamically loaded module
@@ -15,19 +17,16 @@ export const createLangChainProvider = async (
   config: ModelConfig
 ): Promise<ModelProvider> => {
   // Find the appropriate chat model class
-  const ModelClass = findChatModelClass(module, config.provider);
-  
+  const className=getChatModelClassName(config.provider);
+  const ModelClass = findLangchainClass(module, config.provider, className);
   if (!ModelClass) {
     throw new Error(`Could not find a suitable chat model class in provider module ${config.provider}`);
   }
-  
-  
-
   // Create an instance of the chat model
-  // Config is already enhanced with all defaults and HTTP agents
-  logger.debug(`Model params ${JSON.stringify(config)}`)
-  
-  const model = new ModelClass(config);
+  // Config is already enhanced
+  const classEnhancedConfig = await processDynamicClasses(config, config.provider, module);
+  logger.debug(`Dynamically enhanced config ${JSON.stringify(classEnhancedConfig)}`)
+  const model = new ModelClass(classEnhancedConfig);
   
   // Create and return a provider adapter
   return {
@@ -117,9 +116,9 @@ export const createLangChainProvider = async (
  * @param provider The provider package name
  * @returns The chat model class or undefined if not found
  */
-export const findChatModelClass = (module: any, provider: string): any => {
+export const findLangchainClass = (module: any, provider: string, expectedClassName:string): any => {
   // Try to get the class name from our mapping
-  const expectedClassName = getChatModelClassName(provider);
+  // const expectedClassName = getChatModelClassName(provider);
   
   // If we have a mapping for this provider, try to use it first
   if (expectedClassName && module[expectedClassName] && typeof module[expectedClassName] === 'function') {
