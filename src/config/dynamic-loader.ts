@@ -4,19 +4,19 @@ import logger from "../utils/logger";
  * Loads and instantiates a dynamic class, function, or arrow function from module
  * @param config Object containing _type and optional _module
  * @param provider Optional provider context from parent configuration
- * @param loadedModule Optional pre-loaded module to use instead of dynamic import
+ * @param moduleRegistry Optional module registry containing pre-loaded modules
  * @returns Instantiated class instance, function result, or function reference
  */
 
-export const loadDynamicClass = async (config: any, provider?: string, loadedModule?: any) => {
+export const loadDynamicClass = async (config: any, provider?: string, moduleRegistry?: Map<string, any>) => {
   const modulePath = config._module || provider;
   const exportName = config._type;
 
   // Handle inline function definitions
-  //TOOD: This is not working correctly
+  //TODO: This is not working correctly
   if (config._inline && typeof config._inline === 'string') {
     try {
-      // Extract parameters, excluding meta properties
+      // Extract parameters, excluding meta properties but preserving enhanced properties
       const { _type, _module, _inline, ...params } = config;
       
       // Create a function from the inline string with access to params
@@ -54,11 +54,13 @@ export const loadDynamicClass = async (config: any, provider?: string, loadedMod
   try {
     let module;
     
-    // Use the pre-loaded module if available and matches the module path
-    if (loadedModule && (modulePath === provider || modulePath.startsWith('@langchain/'))) {
-      module = loadedModule;
+    // First try to get the module from the registry
+    if (moduleRegistry && moduleRegistry.has(modulePath)) {
+      module = moduleRegistry.get(modulePath);
+      logger.debug(`Using module from registry: ${modulePath}`);
     } else {
-      // Fall back to dynamic import for other modules
+      // Fall back to dynamic import for modules not in registry
+      logger.debug(`Module not in registry, trying dynamic import: ${modulePath}`);
       module = await import(modulePath);
     }
     
@@ -68,8 +70,8 @@ export const loadDynamicClass = async (config: any, provider?: string, loadedMod
       throw new Error(`Export ${exportName} not found in ${modulePath}`);
     }
 
-    // Extract parameters, excluding meta properties
-    const { _type, _module, ...params } = config;
+    // Extract parameters, excluding meta properties but preserving enhanced properties
+    const { _type, _module, _inline, ...params } = config;
     
     // Check if it's a function (including arrow functions and regular functions)
     if (typeof ExportedItem === 'function') {

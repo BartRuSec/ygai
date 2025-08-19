@@ -3,7 +3,6 @@ import yaml from 'js-yaml';
 import { Config, PromptConfig, validateConfig, ConfigValidationError } from './schema';
 import { fileExists, readFile, getConfigPath, getHomeDirectory } from '../utils/file';
 import { resolvePromptValue } from '../models/prompt-resolver';
-import { enhanceModelConfig } from './enhancers';
 import logger from '../utils/logger';
 
 /**
@@ -78,7 +77,7 @@ export const getModelConfig = (config: Config, modelName?: string): Config['mode
   }
   
   // Apply all enhancements to the model configuration
-  return enhanceModelConfig(modelConfig);
+  return modelConfig;
 };
 
 
