@@ -1,34 +1,12 @@
 import { Command } from 'commander';
-import { execSync } from 'child_process';
-import fs from 'fs';
-import { PROVIDERS_DIR, PACKAGE_JSON_PATH } from '../models';
+import { getInstalledProviders, upgradeProviderPackage, uninstallProviderPackage, PROVIDERS_DIR } from '../models/provider-manager';
 import logger from '../utils/logger';
 import { handleVerboseLogging } from './utils';
+import fs from 'fs';
+import path from 'path';
 
-/**
- * Gets the list of installed providers from package.json
- * @returns Array of installed provider names
- */
-const getInstalledProviders = (): string[] => {
-  try {
-    // Check if package.json exists
-    if (!fs.existsSync(PACKAGE_JSON_PATH)) {
-      return [];
-    }
-    
-    // Read package.json
-    const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, 'utf-8'));
-    
-    // Get dependencies
-    const dependencies = packageJson.dependencies || {};
-    
-    // Return array of provider names
-    return Object.keys(dependencies);
-  } catch (error) {
-    logger.error(`Error getting installed providers: ${error}`);
-    return [];
-  }
-};
+// Define package.json path
+const PACKAGE_JSON_PATH = path.join(PROVIDERS_DIR, 'package.json');
 
 /**
  * Configure the providers command
@@ -93,17 +71,19 @@ export const configureProvidersCommand = (program: Command): Command => {
         console.log('Upgrading providers:');
         for (const provider of providers) {
           try {
-            console.log(`- ${provider}`);
-            execSync(`npm install ${provider}@latest`, { 
-              stdio: 'inherit',
-              cwd: PROVIDERS_DIR
-            });
+            console.log(`- Upgrading ${provider}...`);
+            const success = await upgradeProviderPackage(provider);
+            if (success) {
+              console.log(`  ✓ ${provider} upgraded successfully`);
+            } else {
+              console.log(`  ✗ Failed to upgrade ${provider}`);
+            }
           } catch (error) {
             logger.error(`Failed to upgrade provider ${provider}: ${error}`);
           }
         }
         
-        console.log('\nAll providers upgraded successfully');
+        console.log('\nProvider upgrade process completed');
       } catch (error) {
         logger.error(`${error}`);
         process.exit(1);
@@ -129,17 +109,19 @@ export const configureProvidersCommand = (program: Command): Command => {
         console.log('Removing providers:');
         for (const provider of providers) {
           try {
-            console.log(`- ${provider}`);
-            execSync(`npm uninstall ${provider}`, { 
-              stdio: 'inherit',
-              cwd: PROVIDERS_DIR
-            });
+            console.log(`- Removing ${provider}...`);
+            const success = await uninstallProviderPackage(provider);
+            if (success) {
+              console.log(`  ✓ ${provider} removed successfully`);
+            } else {
+              console.log(`  ✗ Failed to remove ${provider}`);
+            }
           } catch (error) {
             logger.error(`Failed to remove provider ${provider}: ${error}`);
           }
         }
         
-        console.log('\nAll providers removed successfully');
+        console.log('\nProvider removal process completed');
       } catch (error) {
         logger.error(`${error}`);
         process.exit(1);

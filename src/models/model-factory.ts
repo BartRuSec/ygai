@@ -3,8 +3,9 @@ import { ModelProvider } from './base';
 import logger from '../utils/logger';
 import { getChatModelClassName} from './provider-mapping';
 import { BaseMessage } from '@langchain/core/messages';
-import { processDynamicClasses } from '../config/enhancers';
+import { enhanceModelConfig, processDynamicClasses } from '../config/enhancers';
 import { createSimpleMessages } from './prompt-template';
+import { createModuleRegistry } from './provider-manager';
 
 /**
  * Creates a model provider instance using LangChain's ChatPromptTemplate
@@ -22,11 +23,17 @@ export const createLangChainProvider = async (
   if (!ModelClass) {
     throw new Error(`Could not find a suitable chat model class in provider module ${config.provider}`);
   }
-  // Create an instance of the chat model
-  // Config is already enhanced
-  const classEnhancedConfig = await processDynamicClasses(config, config.provider, module);
-  logger.debug(`Dynamically enhanced config ${JSON.stringify(classEnhancedConfig)}`)
-  const model = new ModelClass(classEnhancedConfig);
+  
+  // Create module registry with all available modules
+  const moduleRegistry = await createModuleRegistry();
+  // Add the current provider module to the registry
+  moduleRegistry.set(config.provider, module);
+  
+  // Create an instance of the chat model with enhanced config
+  logger.debug(`Creating model with provider: ${config.provider}`);
+  const enhancedConfig = await enhanceModelConfig(config, moduleRegistry);
+  logger.debug(`Enhanced config ${JSON.stringify(enhancedConfig)}`)
+  const model = new ModelClass(enhancedConfig);
   
   // Create and return a provider adapter
   return {

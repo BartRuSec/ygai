@@ -112,10 +112,10 @@ const processDefaultValues = (config: ModelConfig): ModelConfig => {
  * Ensures proper hierarchy resolution where dependencies are resolved first
  * @param obj Configuration object to process
  * @param provider Optional provider context from parent configuration
- * @param loadedModule Optional pre-loaded module to use instead of dynamic import
+ * @param moduleRegistry Optional module registry containing pre-loaded modules
  * @returns Processed configuration with classes instantiated
  */
-export const processDynamicClasses = async (obj: any, provider?: string, loadedModule?: any): Promise<any> => {
+export const processDynamicClasses = async (obj: any, provider?: string, moduleRegistry?: Map<string, any>): Promise<any> => {
   // Handle primitive types and null
   if (obj === null || typeof obj !== 'object') {
     return obj;
@@ -123,7 +123,7 @@ export const processDynamicClasses = async (obj: any, provider?: string, loadedM
 
   // Process arrays
   if (Array.isArray(obj)) {
-    return Promise.all(obj.map(item => processDynamicClasses(item, provider, loadedModule)));
+    return Promise.all(obj.map(item => processDynamicClasses(item, provider, moduleRegistry)));
   }
 
   // Extract provider from current level if available
@@ -132,7 +132,13 @@ export const processDynamicClasses = async (obj: any, provider?: string, loadedM
   // Check if current object needs processing BEFORE processing children
   if (obj._type || obj._inline) {
    // logger.debug(`Processing dynamic class/inline for object with keys: ${Object.keys(obj).join(', ')}`);
-    return await loadDynamicClass(obj, currentProvider, loadedModule);
+    return await loadDynamicClass(obj, currentProvider, moduleRegistry);
+  }
+
+  // Preserve HTTPS Agent objects created by processHttpAgents (only if no _type to override)
+  if (obj.constructor?.name?.includes('Agent')) {
+    logger.debug(`Preserving HTTPS Agent object: ${obj.constructor.name}`);
+    return obj;
   }
 
   // Process objects (depth-first to resolve dependencies first)
@@ -141,8 +147,8 @@ export const processDynamicClasses = async (obj: any, provider?: string, loadedM
   // Process each property sequentially to maintain dependency order
   for (const [key, value] of Object.entries(obj)) {
    // logger.debug(`Processing property: ${key}`);
-    // Recursively process all properties, passing down the provider context and loaded module
-    processedObj[key] = await processDynamicClasses(value, currentProvider, loadedModule);
+    // Recursively process all properties, passing down the provider context and module registry
+    processedObj[key] = await processDynamicClasses(value, currentProvider, moduleRegistry);
   }
 
   // Return the processed object with resolved children
@@ -152,7 +158,7 @@ export const processDynamicClasses = async (obj: any, provider?: string, loadedM
 
 
 
-export const enhanceModelConfig =  (config: ModelConfig): ModelConfig => {
+export const enhanceModelConfig = async (config: ModelConfig, moduleRegistry?: Map<string, any>): Promise <ModelConfig >=> {
   logger.debug('Enhancing model configuration');
   
   // Create a deep copy to avoid mutating the original config
@@ -164,7 +170,8 @@ export const enhanceModelConfig =  (config: ModelConfig): ModelConfig => {
   // Apply HTTP agent enhancements
   enhancedConfig = processHttpAgents(enhancedConfig);
   
- // Dynamic class enchancer will be perform after module loading
+ // Dynamic class enhancer will be performed with module registry
+  enhancedConfig= await processDynamicClasses(enhancedConfig, config.provider, moduleRegistry);
   
   logger.debug('Model configuration enhanced successfully');
   return enhancedConfig;
