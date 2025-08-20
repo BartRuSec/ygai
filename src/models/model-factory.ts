@@ -6,6 +6,7 @@ import { BaseMessage } from '@langchain/core/messages';
 import { enhanceModelConfig, processDynamicClasses } from '../config/enhancers';
 import { createSimpleMessages } from './prompt-template';
 import { createModuleRegistry } from './provider-manager';
+import { createMcpEnabledModel, cleanupMcpModel } from '../mcp';
 
 /**
  * Creates a model provider instance using LangChain's ChatPromptTemplate
@@ -15,7 +16,8 @@ import { createModuleRegistry } from './provider-manager';
  */
 export const createLangChainProvider = async (
   module: any,
-  config: ModelConfig
+  config: ModelConfig,
+  mcpServerNames?: string[]
 ): Promise<ModelProvider> => {
   // Find the appropriate chat model class
   const className=getChatModelClassName(config.provider);
@@ -35,6 +37,11 @@ export const createLangChainProvider = async (
   logger.debug(`Enhanced config ${JSON.stringify(enhancedConfig)}`)
   const model = new ModelClass(enhancedConfig);
   
+  // MCP Integration: Create MCP-enabled model if MCP servers are specified
+  const finalModel = mcpServerNames 
+    ? await createMcpEnabledModel(model, mcpServerNames)
+    : model;
+  
   // Create and return a provider adapter
   return {
     generate: async (
@@ -48,15 +55,17 @@ export const createLangChainProvider = async (
         // Use the new combined method to create and format the chat prompt
 
         logger.debug(`Formatted messages: ${JSON.stringify(messages)}`);
-        if (stream) {
+        // For MCP-enabled models, disable streaming as React agent streaming is complex
+        // Use non-streaming approach which works reliably
+        if (stream && !(finalModel as any)._mcpClient) {
           // Use the correct streaming method based on the model
-          const streamingMethod = model.stream;
+          const streamingMethod = finalModel.stream;
           
           if (!streamingMethod) {
             throw new Error(`Model does not support streaming`);
           }
           
-          const streamingResponse = await streamingMethod.call(model, messages);
+          const streamingResponse = await streamingMethod.call(finalModel, messages);
 
           return (async function* () {
             let hasContent = false;
@@ -65,7 +74,7 @@ export const createLangChainProvider = async (
               const chunkAny = chunk as any;
               let contentPiece = '';
 
-              // Handle different response formats
+              // Handle regular model streaming formats
               if (chunkAny.content) {
                 contentPiece = chunkAny.content.toString();
               } else if (chunkAny.text) {
@@ -88,31 +97,28 @@ export const createLangChainProvider = async (
             }
           })();
         } else {
-          const response = await model.invoke(messages);
-          const responseContent = response.content as any;
-          return responseContent?.toString()+"\n" || '';
+          // Check if this is a React agent (MCP-enabled model)
+          if ((finalModel as any)._mcpClient) {
+            // React agent expects { messages: [...] } format
+            const response = await finalModel.invoke({ messages });
+            // Extract the last message content from the agent response
+            const lastMessage = response.messages[response.messages.length - 1];
+            return lastMessage.content.toString() + "\n" || '';
+          } else {
+            // Regular model expects messages array directly
+            const response = await finalModel.invoke(messages);
+            const responseContent = response.content as any;
+            return responseContent?.toString()+"\n" || '';
+          }
         }
       } catch (error) {
         throw new Error(`Error generating response: ${JSON.stringify(error)}`);
       }
     },
 
-    generateTitle: async (conversation: string): Promise<string> => {
-      try {
-        // Create messages directly without using ChatPromptTemplate
-        const messages = createSimpleMessages(
-          'Generate a short, descriptive title for this conversation. Respond with only the title, no quotes or additional text.',
-          conversation
-        );
 
-        const response = await model.invoke(messages);
-
-        const responseContent = response.content;
-        return responseContent?.toString() || 'Untitled Conversation';
-      } catch (error) {
-        logger.error(`Error generating title: ${error}`);
-        return 'Untitled Conversation';
-      }
+    cleanup: async (): Promise<void> => {
+      await cleanupMcpModel(finalModel);
     },
   };
 };

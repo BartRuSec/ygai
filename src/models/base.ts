@@ -24,12 +24,11 @@ generate(
   
 ): Promise<any>;
 
+
   /**
-   * Generates a title for a conversation
-   * @param conversation The conversation to generate a title for
-   * @returns The generated title
+   * Cleans up any resources used by the model provider
    */
-  generateTitle(conversation: string): Promise<string>;
+  cleanup?(): Promise<void>;
 }
 
 /**

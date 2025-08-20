@@ -35,6 +35,87 @@ models:
     configuration:
       baseURL: "http://localhost:1234/v1"
       agent: unsecure  # Disables HTTPS certificate checking - DEVELOPMENT ONLY
+  
+  # Advanced configuration example using _type and _module for custom HTTP agent
+  advanced-custom:
+    provider: "@langchain/openai"
+    model: "gpt-4"
+    apiKey: "your-openai-api-key"
+    configuration:
+      baseURL: "https://api.openai.com/v1"
+      # Custom HTTP agent with specific configuration
+      httpAgent:
+        _type: "Agent"
+        _module: "https"
+        timeout: 10000
+        keepAlive: true
+        maxSockets: 5
+        maxFreeSockets: 2
+  
+  # Example with inline function for request transformation
+  inline-function-example:
+    provider: "@langchain/openai"
+    model: "gpt-4"
+    apiKey: "your-openai-api-key"
+    configuration:
+      # Custom request transformer using inline function
+      requestTransformer:
+        _inline: |
+          () => {
+            return (request) => {
+              // Add custom headers
+              return {
+                ...request,
+                headers: {
+                  ...request.headers,
+                  'X-Custom-Client': 'ygai',
+                  'X-Request-ID': Math.random().toString(36).substr(2, 9)
+                }
+              };
+            };
+          }
+
+# MCP (Model Context Protocol) server configurations
+mcp:
+  # Math server using STDIO transport
+  math:
+    transport: "stdio"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-math"]
+    restart:
+      enabled: true
+      maxAttempts: 3
+      delayMs: 1000
+  
+  # Filesystem server using STDIO transport
+  filesystem:
+    transport: "stdio"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/directory"]
+    restart:
+      enabled: true
+      maxAttempts: 3
+      delayMs: 1000
+  
+  # Example HTTP/SSE server
+  weather:
+    url: "https://example.com/weather/mcp"
+    headers:
+      Authorization: "Bearer your-api-token"
+    automaticSSEFallback: false
+    reconnect:
+      enabled: true
+      maxAttempts: 5
+      delayMs: 2000
+  
+  # Example SSE server
+  github:
+    transport: "sse"
+    url: "https://example.com/mcp"
+    reconnect:
+      enabled: true
+      maxAttempts: 5
+      delayMs: 2000
 
 prompts:
   # Default prompt configuration
@@ -87,3 +168,24 @@ prompts:
     system: "You are a helpful assistant."
     user:
       file: "~/prompts/user-template.txt"
+  
+  # MCP-enabled prompts
+  math-helper:
+    alias: m
+    system: "You are a math assistant with access to calculation tools. Use the available math tools to solve complex calculations accurately."
+    mcp: ["math"]
+  
+  file-analyzer:
+    alias: fa
+    system: "You are a file analysis assistant. You can read and analyze files from the filesystem and perform mathematical calculations on data."
+    mcp: ["filesystem", "math"]
+  
+  weather-assistant:
+    alias: w
+    system: "You are a weather assistant with access to weather data. Provide current weather information and forecasts."
+    mcp: "weather"
+  
+  research-assistant:
+    alias: ra
+    system: "You are a research assistant with access to multiple tools including file system access, mathematical calculations, and external data sources."
+    mcp: ["filesystem", "math", "weather"]

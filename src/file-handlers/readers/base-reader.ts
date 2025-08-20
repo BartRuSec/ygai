@@ -32,7 +32,6 @@ export class FileProcessingError extends Error {
 /**
  * Checks if a file is likely binary using the isbinaryfile library
  * This library properly handles UTF-8, UTF-16, UTF-32 and various text encodings,
- * including international characters like Polish ęź or Chinese characters.
  * @param buffer The file buffer to check
  * @returns True if the file is likely binary, false otherwise
  */
