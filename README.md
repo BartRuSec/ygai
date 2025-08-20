@@ -28,6 +28,7 @@ A command-line tool written in TypeScript for communication with LLMs via the co
 - Variable substitution in prompts
 - Customizable system and user prompts
 - File-based prompt support (load prompts from external files)
+- MCP (Model Context Protocol) integration for external tools and resources
 
 ## Installation
 
@@ -82,6 +83,9 @@ models:
       baseURL: "http://localhost:1234/v1"
       httpAgent: unsecure  # Disables HTTPS certificate checking - DEVELOPMENT ONLY (you can use rejectUnauthorized: false as well)
 
+# NOTE: Latest LangChain providers may not expose the httpAgent configuration option.
+# Please refer to the specific provider's documentation for available configuration options.
+
 prompts:
   # Default prompt configuration
   default:
@@ -130,6 +134,17 @@ For a complete configuration example, refer to the `sample-config.yaml` file in 
 Model configurations should follow the object structure specific to each provider as documented in the [LangChain.js Chat Models](https://js.langchain.com/docs/integrations/chat/). Each provider may have different required and optional parameters that should be included in the `model` section of your model config.
 
 For provider-specific configuration options and parameters, please refer to the official LangChain documentation for your chosen provider.
+
+### Advanced Configuration Options
+
+ygai supports advanced configuration patterns including dynamic class loading and inline functions using `_type`, `_module`, and `_inline` properties. These features enable:
+
+- Custom HTTP agent configurations
+- Dynamic loading of third-party modules
+- Inline function definitions for specialized behavior
+- Advanced model provider customization
+
+For detailed information about these advanced features, see the [Advanced Configuration Guide](docs/advanced-configuration.md).
 
 ### Variable Substitution in Prompts
 
@@ -262,6 +277,71 @@ If required variables are missing, the tool will show an error message before ex
 See the `examples/hooks/` directory for complete hook examples:
 - `translatePre.js`: Input validation and preprocessing
 - `translatePost.js`: Output validation and logging
+
+### MCP (Model Context Protocol) Integration
+
+MCP (Model Context Protocol) is supported, allowing you to extend your AI models with external tools and resources. MCP enables your models to interact with file systems, perform calculations, access databases, and much more.
+
+> **Performance Note**: 
+> MCP connections are established per execution, which means each command that uses MCP will create new connections to the configured servers. This may result in slightly longer execution times, especially for commands that use multiple MCP servers or when servers have longer startup times. For optimal performance, consider this when designing workflows that make frequent use of MCP-enabled prompts.
+
+#### MCP Configuration
+
+MCP servers are configured in the `mcp` section of your configuration file:
+
+```yaml
+mcp:
+  # Math server using STDIO transport
+  math:
+    transport: "stdio"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-math"]
+    restart:
+      enabled: true
+      maxAttempts: 3
+      delayMs: 1000
+  
+  # Filesystem server
+  filesystem:
+    transport: "stdio"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/directory"]
+    restart:
+      enabled: true
+      maxAttempts: 3
+      delayMs: 1000
+```
+
+#### Using MCP in Prompts
+
+To use MCP servers in your prompts, specify them in the `mcp` field:
+
+```yaml
+prompts:
+  # Single MCP server
+  math-helper:
+    alias: m
+    system: "You are a math assistant with access to calculation tools."
+    mcp: "math"
+  
+  # Multiple MCP servers
+  research-assistant:
+    alias: ra
+    system: "You are a research assistant with multiple tools."
+    mcp: ["filesystem", "math"]
+```
+
+#### MCP Usage Examples
+
+```bash
+# Using math tools
+ygai p math-helper "What is the square root of 144 plus 25 factorial?"
+
+# Research with multiple tools
+ygai p research-assistant "Read report.txt and calculate statistics from the data"
+```
+
+For detailed MCP configuration options and advanced usage, see the [MCP Integration Guide](docs/mcp-integration.md).
 
 ### File-Based Prompts
 

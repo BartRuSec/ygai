@@ -29,13 +29,41 @@ export interface PromptConfig {
   vars?: string[]; // Required variables to be provided via -D option
   pre?: HookConfig; // Pre-execution hook
   post?: HookConfig; // Post-execution hook
+  mcp?: string[] | string; // MCP servers to use for this prompt
 }
 
 // Resolved prompt configuration (with prompt values resolved to strings)
 export type ResolvedPromptConfig = Omit<PromptConfig, 'system' | 'user'> & {
   system?: string; // Always resolved to string
   user?: string; // Always resolved to string
+  mcp?: string[] | string; // MCP servers to use for this prompt
 };
+
+// MCP server configuration
+export interface McpServerConfig {
+  // STDIO transport
+  transport?: 'stdio' | 'sse';
+  command?: string;
+  args?: string[];
+  restart?: {
+    enabled: boolean;
+    maxAttempts: number;
+    delayMs: number;
+  };
+  
+  // HTTP/SSE transport
+  url?: string;
+  headers?: Record<string, string>;
+  automaticSSEFallback?: boolean;
+  reconnect?: {
+    enabled: boolean;
+    maxAttempts: number;
+    delayMs: number;
+  };
+  
+  // Additional options
+  [key: string]: any;
+}
 
 // Main configuration structure
 export interface Config {
@@ -46,6 +74,9 @@ export interface Config {
   prompts?: {
     default?: PromptConfig; // Default prompt configuration
     [key: string]: PromptConfig | undefined; // Named prompt configurations
+  };
+  mcp?: {
+    [key: string]: McpServerConfig; // Named MCP server configurations
   };
 }
 

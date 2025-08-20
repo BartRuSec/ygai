@@ -8,7 +8,13 @@ import { executeHook, HookContext } from "../hooks";
 
 export const executePrompt = async (executionOptions: PromptExecutionOptions,isHistory:boolean=false): Promise<void> => {
 
-    const modelProvider = await getModelProvider(executionOptions.model);
+    // Extract MCP server names from prompt config
+    const mcpServerNames = executionOptions.promptConfig?.mcp 
+      ? (Array.isArray(executionOptions.promptConfig.mcp) 
+          ? executionOptions.promptConfig.mcp 
+          : [executionOptions.promptConfig.mcp])
+      : undefined;
+    const modelProvider = await getModelProvider(executionOptions.model, mcpServerNames);
     if (!modelProvider) {
         throw new Error(`Model provider not found for model: ${executionOptions.model.name}`);
     }
@@ -96,5 +102,10 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
 
     } catch (error) {
         throw new Error(`Error executing prompt: ${error.message}`);
+    } finally {
+        // Cleanup MCP resources
+        if (modelProvider?.cleanup) {
+            await modelProvider.cleanup();
+        }
     }
 }

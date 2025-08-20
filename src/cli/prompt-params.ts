@@ -90,7 +90,8 @@ export async function processPromptArgs(
         max_tokens: promptConfig.max_tokens,
         vars: promptConfig.vars,
         pre: promptConfig.pre,
-        post: promptConfig.post
+        post: promptConfig.post,
+        mcp: promptConfig.mcp
       };
     } catch (error) {
       if (error instanceof PromptResolutionError) {

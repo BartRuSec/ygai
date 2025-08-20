@@ -7,9 +7,10 @@ import { createLangChainProvider } from './model-factory';
 /**
  * Dynamically loads a model provider based on the configuration
  * @param config The model configuration
+ * @param mcpServerNames Optional array of MCP server names to enable
  * @returns The model provider instance
  */
-export const loadModelProvider = async (config: ModelConfig): Promise<ModelProvider> => {
+export const loadModelProvider = async (config: ModelConfig, mcpServerNames?: string[]): Promise<ModelProvider> => {
   const { provider } = config;
 
   // Check if the provider is already installed
@@ -31,7 +32,7 @@ export const loadModelProvider = async (config: ModelConfig): Promise<ModelProvi
     const providerModule = await loadPackage(provider);
     
     // Create a provider adapter using LangChain's ChatPromptTemplate
-    return createLangChainProvider(providerModule, config);
+    return createLangChainProvider(providerModule, config, mcpServerNames);
   } catch (error) {
     throw new Error(`Failed to load model provider "${provider}": ${error}`);
   }
