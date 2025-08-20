@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import logger from '../utils/logger';
 import { CommonOptions, processPromptArgs } from './prompt-params';
-import { commonSetup } from './utils';
+import { commonSetup, readStdin } from './utils';
 import { addCommonPromptOptions } from './prompt-options';
 import { exec } from 'child_process';
 import { executePrompt } from './prompt-execution';
@@ -25,13 +25,7 @@ export const configurePromptCommand = (program: Command): Command => {
       try {
         // Common setup
         const config = commonSetup(program, options);
-        
-        // Check for stdin input
-        let stdinContent: string | undefined;
-        const stdinBuffer = process.stdin.read();
-        if (stdinBuffer) {
-          stdinContent = stdinBuffer.toString().trim();
-        }
+        const stdin=await readStdin()
         
         // Process command arguments
         const executeOptions = await processPromptArgs(
@@ -39,7 +33,7 @@ export const configurePromptCommand = (program: Command): Command => {
           promptName,
           promptArgs,
           options,
-          stdinContent
+          stdin
         );
         
        logger.debug('returning base options',executeOptions);
