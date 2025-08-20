@@ -30,3 +30,17 @@ export const commonSetup = (program: Command, options: CommonOptions) => {
   const config = loadConfig();
   return config;
 };
+
+export const readStdin=async()=>{
+  let stdinContent: string | undefined;
+  const hasStdin = !process.stdin.isTTY;
+  if (hasStdin) {
+  // Read all stdin data
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) {
+      chunks.push(chunk);
+    }
+    stdinContent = Buffer.concat(chunks).toString().trim();
+  }
+  return stdinContent;
+}

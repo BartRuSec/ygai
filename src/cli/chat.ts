@@ -5,7 +5,7 @@ import { addCommonPromptOptions} from './prompt-options';
 //import { processFileContext, executeModelRequest } from './execution-flow';
 
 import { processPromptArgs, PromptExecutionOptions, CommonOptions } from './prompt-params';
-import { commonSetup } from './utils';
+import { commonSetup, readStdin } from './utils';
 
 import logger from '../utils/logger';
 import { executePrompt } from './prompt-execution';
@@ -30,12 +30,7 @@ export const configureChatCommand = (program: Command): Command => {
            // Common setup
         const config = commonSetup(program, options);
         
-        // Check for stdin input
-        let stdinContent: string | undefined;
-        const stdinBuffer = process.stdin.read();
-        if (stdinBuffer) {
-          stdinContent = stdinBuffer.toString().trim();
-        }
+        const stdin=await readStdin();
         
         // Process command arguments
         const executeOptions = await processPromptArgs(
@@ -43,7 +38,7 @@ export const configureChatCommand = (program: Command): Command => {
           promptName,
           promptArgs,
           options,
-          stdinContent,
+          stdin,
 
         );
         logger.debug('returning base options',executeOptions);
