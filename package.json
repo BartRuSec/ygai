@@ -1,8 +1,9 @@
 {
   "name": "ygai",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Yet Another Gen AI CLI Tool",
   "main": "dist/index.js",
+  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BartRuSec/ygai.git"
@@ -20,7 +21,8 @@
     "dev": "ts-node src/cli.ts",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
-    "test": "vitest run src/**/*.test.ts"
+    "test": "vitest run src/**/*.test.ts",
+    "postinstall": "patch-package"
   },
   "keywords": [
     "cli",
@@ -39,16 +41,17 @@
     "isbinaryfile": "^5.0.4",
     "js-yaml": "^4.1.0",
     "mammoth": "^1.9.1",
+    "marked": "^15.0.12",
+    "marked-terminal": "^7.3.0",
     "officeparser": "^5.2.0",
     "pdf-parse": "^1.1.1",
-    "remark": "^15.0.1",
-    "remark-stringify": "^11.0.0",
     "turndown": "^7.2.0",
     "winston": "^3.10.0"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.19.9",
+    "patch-package": "^8.0.0",
     "rimraf": "^6.0.1",
     "shx": "^0.4.0",
     "ts-node": "^10.9.1",

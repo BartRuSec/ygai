@@ -24,6 +24,7 @@ export interface PromptExecutionOptions {
   variables?: Record<string, any>;
   userInput?: string; // Add userInput to execution options
   promptName?: string; // Add promptName for hook context
+  output: 'plain' | 'markdown'; // Output formatting resolved from config and CLI options
 }
 
 
@@ -57,7 +58,7 @@ export async function processPromptArgs(
   config: Config,
   promptName: string | undefined,
   promptArgs: string[],
-  options: { file?: string[]; stream?: boolean; dryRun?: boolean; model?: string; systemPrompt?: string,define?:any },
+  options: { file?: string[]; stream?: boolean; dryRun?: boolean; model?: string; systemPrompt?: string; define?: any; plain?: boolean },
   stdinContent?: string
 ): Promise<PromptExecutionOptions> {
  
@@ -91,7 +92,8 @@ export async function processPromptArgs(
         vars: promptConfig.vars,
         pre: promptConfig.pre,
         post: promptConfig.post,
-        mcp: promptConfig.mcp
+        mcp: promptConfig.mcp,
+        output: promptConfig.output
       };
     } catch (error) {
       if (error instanceof PromptResolutionError) {
@@ -101,14 +103,23 @@ export async function processPromptArgs(
     }
   }
 
+  // Determine output format with priority: --plain CLI option > prompt config output > default 'markdown'
+  let outputFormat: 'plain' | 'markdown' = 'markdown';
+  if (options.plain) {
+    outputFormat = 'plain';
+  } else if (resolvedPromptConfig?.output) {
+    outputFormat = resolvedPromptConfig.output;
+  }
+
   // Create base options with common properties
   const executionOptions: PromptExecutionOptions = {
     promptConfig: resolvedPromptConfig,
-    stream: options.stream !== false,
+    stream: options.stream === true, // Default to false, only true if explicitly set
     dryRun: options.dryRun || false,
     model: getModelConfig(config, options.model),
     variables: options.define!==undefined? options.define:{},
     promptName: promptName,
+    output: outputFormat,
   };
 
 

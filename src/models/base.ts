@@ -20,8 +20,7 @@ export interface ModelProvider {
 generate(
   messages: BaseMessage[],
   stream?: boolean,
-  
-  
+  onTokenUpdate?: (count: number) => void,
 ): Promise<any>;
 
 

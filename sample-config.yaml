@@ -127,6 +127,7 @@ prompts:
     vars: [language]  # Required variables
     alias: t
     system: "Translate this text to {language}. Respond with only the translated text, no explanations or additional text."
+    output: plain  # Use plain text output (no markdown formatting)
     # Example hooks (uncomment to use)
     # pre:
     #   file: "./examples/hooks/translatePre.js"
@@ -148,12 +149,14 @@ prompts:
   # Shell command prompt
   sh:
     system: "Provide only zsh code to be executed base on user request."
+    output: plain  # Shell commands should be plain text for easy copying
   
   # Date prompt
   date:
     alias: d
     system: "You are a system utility. Respond with only the requested information in JSON format."
     user: "Provide the current date and time."
+    output: plain  # JSON output should be plain text
   
   # Example of file-based prompts
   file-example:
@@ -189,3 +192,5 @@ prompts:
     alias: ra
     system: "You are a research assistant with access to multiple tools including file system access, mathematical calculations, and external data sources."
     mcp: ["filesystem", "math", "weather"]
+    # output: markdown  # Default value, can be omitted
+    # Note: Use --plain flag to override any prompt's output configuration

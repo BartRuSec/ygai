@@ -33,9 +33,12 @@ ehthumbs.db
 Thumbs.db
 
 # Session files
-.ygai/sessions/
+.ygai-chat
 
 # LLMs working files
 .clinerules
 .clineignore
+CLAUDE.md 
+.claudeignore  
 memory
+tmp/
