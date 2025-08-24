@@ -33,7 +33,7 @@ ehthumbs.db
 Thumbs.db
 
 # Session files
-.ygai/sessions/
+.ygai-chat
 
 # LLMs working files
 .clinerules
@@ -41,3 +41,4 @@ Thumbs.db
 CLAUDE.md 
 .claudeignore  
 memory
+tmp/

@@ -153,7 +153,7 @@ const processMcpResponse = async (
   // React agent expects { messages: [...] } format
   const response = await model.invoke({ messages });
   const lastMessage = response.messages[response.messages.length - 1];
-  const content = lastMessage.content.toString() + "\n" || '';
+  const content = lastMessage.content.toString() || '';
   
   processInvokeResponseWithTokens(content, response, options);
   return content;
@@ -170,7 +170,7 @@ const processInvokeResponse = async (
   // Regular model expects messages array directly
   const response = await model.invoke(messages);
   const responseContent = response.content as any;
-  const content = responseContent?.toString() + "\n" || '';
+  const content = responseContent?.toString() || '';
   
   processInvokeResponseWithTokens(content, response, options);
   return content;
