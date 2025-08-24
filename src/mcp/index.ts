@@ -11,11 +11,17 @@ import logger from "../utils/logger";
  * @returns MCP-enabled model or original model if no MCP servers configured
  */
 export const createMcpEnabledModel = async (baseModel: any, mcpServerNames: string[]): Promise<any> => {
+  // Early return for performance - skip config loading if no servers requested
+  if (!mcpServerNames || mcpServerNames.length === 0) {
+    logger.debug('No MCP server names provided, skipping MCP setup for performance');
+    return baseModel;
+  }
+
   const config = loadConfig();
   
-  if (!config.mcp || mcpServerNames.length === 0) {
-    logger.debug('No MCP configuration or server names provided, returning original model');
-    return baseModel; // Return original model if no MCP
+  if (!config.mcp) {
+    logger.debug('No MCP configuration found, returning original model');
+    return baseModel;
   }
   
   // Build mcpServers object for MultiServerMCPClient

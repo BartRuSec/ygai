@@ -1,12 +1,6 @@
 import type { LoadingIndicatorOptions, LoadingIndicatorResult } from './types';
-
-// ANSI color codes
-const COLORS = {
-    CYAN: '\x1b[36m',
-    WHITE: '\x1b[37m',
-    RESET: '\x1b[0m',
-    CLEAR_LINE: '\x1b[2K\r'
-} as const;
+import { getColorCapabilities } from '../utils/color-detection';
+import chalk from 'chalk';
 
 // Classic spinner frames
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'] as const;
@@ -20,33 +14,35 @@ const createSpinnerFrame = (frameIndex: number, message: string, useColor: boole
     
     if (useColor) {
         const tokenPart = tokenCount !== undefined 
-            ? ` (${COLORS.CYAN}${tokenCount}${COLORS.RESET}${COLORS.WHITE} tokens)`
+            ? ` (${chalk.cyan(tokenCount)} tokens)`
             : '';
         const basePart = tokenCount !== undefined 
             ? message
             : displayMessage;
-        return `${COLORS.CYAN}${frame}${COLORS.RESET} ${COLORS.WHITE}${basePart}${tokenPart}${COLORS.RESET}`;
+        return `${chalk.cyan(frame)} ${chalk.white(basePart)}${tokenPart}`;
     } else {
         return `${frame} ${displayMessage}`;
     }
 };
 
-const renderFrame = (frame: string, isTTY: boolean): void => {
-    if (isTTY) {
+const renderFrame = (frame: string, shouldShow: boolean): void => {
+    if (shouldShow) {
         // Clear line and write frame
-        process.stdout.write(COLORS.CLEAR_LINE + frame);
+        process.stdout.write('\x1b[2K\r' + frame);
     }
 };
 
-const clearLine = (isTTY: boolean): void => {
-    if (isTTY) {
-        process.stdout.write(COLORS.CLEAR_LINE);
+const clearLine = (shouldShow: boolean): void => {
+    if (shouldShow) {
+        process.stdout.write('\x1b[2K\r');
     }
 };
 
 export const createLoadingIndicator = (options: LoadingIndicatorOptions): LoadingIndicatorResult => {
+    const colorCapabilities = getColorCapabilities();
     const message = options.message || 'Invoking model...';
-    const useColor = options.color !== false && options.isTTY;
+    const useColor = colorCapabilities.shouldUseColors;
+    const shouldShow = colorCapabilities.shouldShowLoadingIndicator;
     const showTokenCount = options.showTokenCount === true;
     let intervalId: NodeJS.Timeout | null = null;
     let frameIndex = 0;
@@ -54,7 +50,7 @@ export const createLoadingIndicator = (options: LoadingIndicatorOptions): Loadin
     let currentTokenCount = 0;
 
     const start = (): void => {
-        if (running || !options.isTTY) {
+        if (running || !shouldShow) {
             return;
         }
 
@@ -64,7 +60,7 @@ export const createLoadingIndicator = (options: LoadingIndicatorOptions): Loadin
 
         // Render initial frame (no token count initially)
         const initialFrame = createSpinnerFrame(frameIndex, message, useColor);
-        renderFrame(initialFrame, options.isTTY);
+        renderFrame(initialFrame, shouldShow);
 
         // Start animation loop - updates every 100ms (10fps)
         intervalId = setInterval(() => {
@@ -75,7 +71,7 @@ export const createLoadingIndicator = (options: LoadingIndicatorOptions): Loadin
                 useColor, 
                 showTokenCount && currentTokenCount > 0 ? currentTokenCount : undefined
             );
-            renderFrame(frame, options.isTTY);
+            renderFrame(frame, shouldShow);
         }, 100); // 10fps
 
         // Handle process interruption
@@ -101,7 +97,7 @@ export const createLoadingIndicator = (options: LoadingIndicatorOptions): Loadin
         }
 
         // Clear the spinner line
-        clearLine(options.isTTY);
+        clearLine(shouldShow);
     };
 
     const updateTokenCount = (count: number): void => {

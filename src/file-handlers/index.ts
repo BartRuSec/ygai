@@ -96,24 +96,23 @@ export const readFileAsMarkdown = async (filePath: string): Promise<FileContext>
 
 /**
  * Reads multiple files and converts their content to markdown
+ * Uses parallel processing for better performance
  * @param filePaths The paths to the files
  * @returns An array of file contents as markdown
  */
 export const readFilesAsMarkdown = async (filePaths: string[]): Promise<FileContext[]> => {
-  const results: FileContext[] = [];
-  
-  for (const filePath of filePaths) {
+  // Process files in parallel for better performance
+  const filePromises = filePaths.map(async (filePath) => {
     try {
-      const content = await readFileAsMarkdown(filePath);
-      results.push(content);
+      return await readFileAsMarkdown(filePath);
     } catch (error) {
       logger.error(`Error reading file ${filePath}: ${error}`);
-      results.push({
+      return {
         filePath,
-        content: `Error reading file: ${error.message}` 
-      });
+        content: `Error reading file: ${error.message}`
+      };
     }
-  }
+  });
   
-  return results;
+  return await Promise.all(filePromises);
 };

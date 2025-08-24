@@ -5,7 +5,6 @@ import { getChatModelClassName} from './provider-mapping';
 import { BaseMessage } from '@langchain/core/messages';
 import { enhanceModelConfig, processDynamicClasses } from '../config/enhancers';
 import { createSimpleMessages } from './prompt-template';
-import { createModuleRegistry } from './provider-manager';
 import { createMcpEnabledModel, cleanupMcpModel } from '../mcp';
 import { processModelResponse } from '../utils/response-processor';
 
@@ -27,14 +26,9 @@ export const createLangChainProvider = async (
     throw new Error(`Could not find a suitable chat model class in provider module ${config.provider}`);
   }
   
-  // Create module registry with all available modules
-  const moduleRegistry = await createModuleRegistry();
-  // Add the current provider module to the registry
-  moduleRegistry.set(config.provider, module);
-  
   // Create an instance of the chat model with enhanced config
   logger.debug(`Creating model with provider: ${config.provider}`);
-  const enhancedConfig = await enhanceModelConfig(config, moduleRegistry);
+  const enhancedConfig = await enhanceModelConfig(config);
   logger.debug(`Enhanced config ${JSON.stringify(enhancedConfig)}`)
   const model = new ModelClass(enhancedConfig);
   

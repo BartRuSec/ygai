@@ -1,7 +1,5 @@
 export interface LoadingIndicatorOptions {
     message?: string;
-    color?: boolean;
-    isTTY: boolean;
     showTokenCount?: boolean;
 }
 
