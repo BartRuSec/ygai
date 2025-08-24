@@ -9,13 +9,18 @@ import { formatMarkdown, createLoadingIndicator } from "../ui";
 
 export const executePrompt = async (executionOptions: PromptExecutionOptions,isHistory:boolean=false): Promise<void> => {
 
-    // Extract MCP server names from prompt config
+    // Extract MCP server names from prompt config - only if they exist
     const mcpServerNames = executionOptions.promptConfig?.mcp 
       ? (Array.isArray(executionOptions.promptConfig.mcp) 
           ? executionOptions.promptConfig.mcp 
           : [executionOptions.promptConfig.mcp])
-      : undefined;
-    const modelProvider = await getModelProvider(executionOptions.model, mcpServerNames);
+      : [];
+    
+    // Only pass MCP servers if they are actually configured (performance optimization)
+    const modelProvider = await getModelProvider(
+      executionOptions.model, 
+      mcpServerNames.length > 0 ? mcpServerNames : undefined
+    );
     if (!modelProvider) {
         throw new Error(`Model provider not found for model: ${executionOptions.model.name}`);
     }
