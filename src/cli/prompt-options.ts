@@ -12,8 +12,9 @@ export const addCommonPromptOptions = (program: Command): Command => {
     .option('-f, --file <path>', 'Add file(s) to the context',(value,previous:string[]|undefined)=> {
         return previous ? [...previous,value]:[value]
     })
-    .option('-n, --no-stream', 'Disable streaming of the model response')
+    .option('--stream', 'Enable streaming of the model response')
     .option('-s, --system-prompt <prompt>', 'Override the system prompt')
+    .option('--plain', 'Disable colored output formatting')
     .option('--dry-run', 'Simulate execution without API calls')
     .option('-D, --define <definition>', 'Define template variables', (value, previous = {}) => {
     // Parse the name=value format

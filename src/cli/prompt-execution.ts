@@ -4,6 +4,7 @@ import { PromptExecutionOptions } from "./prompt-params"
 import logger from "../utils/logger";
 import { HistoryManager } from "../history";
 import { executeHook, HookContext } from "../hooks";
+import { formatMarkdown, createLoadingIndicator } from "../ui";
 
 
 export const executePrompt = async (executionOptions: PromptExecutionOptions,isHistory:boolean=false): Promise<void> => {
@@ -59,19 +60,54 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
         }
         
         const {messages,historyMessages}=await createAndFormatChatPrompt( promptConfig.system,promptConfig.user, variables, files,history );
-        const response = await modelProvider.generate(messages,stream);
-    
+        
+        // Initialize loading indicator for terminal output
+        const loadingIndicator = createLoadingIndicator({
+            message: 'Invoking model...',
+            color: executionOptions.output === 'markdown',
+            isTTY: process.stdout.isTTY === true,
+            showTokenCount: true
+        });
+
+        // Start loading indicator
+        loadingIndicator.start();
+
         // Stream response
         let fullResponse = '';
+
+        try {
+            const response = await modelProvider.generate(
+                messages,
+                stream,
+                // Token update callback for real-time token counting
+                (tokenCount: number) => {
+                    loadingIndicator.updateTokenCount(tokenCount);
+                }
+            );
+            
+            // Stop loading indicator before processing response
+            loadingIndicator.stop();
     
-        if (stream && typeof response !== 'string') {
-            for await (const chunk of response) {
-                process.stdout.write(chunk);
-                fullResponse += chunk;
+            const shouldFormatMarkdown = executionOptions.output === 'markdown' && process.stdout.isTTY === true;
+        
+            if (stream && typeof response !== 'string') {
+                // Stream output directly without formatting
+                for await (const chunk of response) {
+                    process.stdout.write(chunk);
+                    fullResponse += chunk;
+                }
+            } else if (typeof response === 'string') {
+                // Format non-streaming output if needed
+                const formattedResponse = shouldFormatMarkdown 
+                    ? await formatMarkdown(response)
+                    : response;
+                process.stdout.write(formattedResponse);
+                fullResponse = response;
             }
-        } else if (typeof response === 'string') {
-            process.stdout.write(response)
-            fullResponse = response;
+        } catch (generateError) {
+            // Ensure loading indicator is stopped on error
+            loadingIndicator.stop();
+            throw generateError;
         }
 
         // Execute post-hook if configured

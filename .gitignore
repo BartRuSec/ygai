@@ -38,4 +38,6 @@ Thumbs.db
 # LLMs working files
 .clinerules
 .clineignore
+CLAUDE.md 
+.claudeignore  
 memory

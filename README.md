@@ -14,6 +14,7 @@ A command-line tool written in TypeScript for communication with LLMs via the co
 - Configuration via YAML files
 - Session management for chat-like interactions
 - Streaming responses
+- Configurable output formatting (plain text or markdown)
 - File input support with multiple formats:
   - Text files (`.txt`)
   - Markdown files (`.md`)
@@ -127,7 +128,7 @@ prompts:
       file: "~/prompts/user-template.txt"
 ```
 
-For a complete configuration example, refer to the `sample-config.yaml` file in the project root.
+For a complete configuration example including output formatting examples, refer to the `sample-config.yaml` file in the project root.
 
 ### Model Configuration Structure
 
@@ -342,6 +343,53 @@ ygai p research-assistant "Read report.txt and calculate statistics from the dat
 ```
 
 For detailed MCP configuration options and advanced usage, see the [MCP Integration Guide](docs/mcp-integration.md).
+
+### Output Formatting Configuration
+
+The tool supports configurable output formatting, allowing you to specify whether responses should be displayed as plain text or with markdown formatting. This is particularly useful for different types of prompts that require different output styles.
+
+#### Output Format Options
+
+You can specify the output format in your prompt configuration using the `output` field:
+
+- **`markdown`** (default): Applies terminal-friendly markdown formatting with colors and styling
+- **`plain`**: Outputs raw text without any formatting
+
+```yaml
+prompts:
+  # Plain text output for shell commands
+  sh:
+    system: "Provide only zsh code to be executed based on user request."
+    output: plain
+  
+  # Plain text for JSON responses  
+  date:
+    system: "You are a system utility. Respond with only the requested information in JSON format."
+    output: plain
+  
+  # Plain text for translations (easy copying)
+  translate:
+    system: "Translate this text to {language}. Respond with only the translated text."
+    output: plain
+  
+  # Markdown formatting for rich explanations (default)
+  code:
+    system: "You are a coding assistant. Provide clean, well-documented code examples."
+    # output: markdown  # Default value, can be omitted
+```
+
+#### Important: Streaming vs Non-Streaming Behavior
+
+**Output formatting only applies to non-streaming responses:**
+
+- **Non-streaming mode**: Formatting is applied based on the `output` configuration and CLI flags
+- **Streaming mode**: Always outputs plain text in real-time, regardless of configuration
+
+This is because streaming responses are sent directly to the terminal as chunks arrive, making it impossible to apply formatting to the complete response.
+
+#### CLI Override
+
+You can override the prompt configuration using CLI flags when needed. The `--plain` flag will force plain text output regardless of the prompt's `output` configuration.
 
 ### File-Based Prompts
 

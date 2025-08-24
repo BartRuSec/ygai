@@ -1,6 +1,6 @@
 {
   "name": "ygai",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Yet Another Gen AI CLI Tool",
   "main": "dist/index.js",
   "repository": {
@@ -39,6 +39,8 @@
     "isbinaryfile": "^5.0.4",
     "js-yaml": "^4.1.0",
     "mammoth": "^1.9.1",
+    "marked": "^15.0.12",
+    "marked-terminal": "^7.3.0",
     "officeparser": "^5.2.0",
     "pdf-parse": "^1.1.1",
     "remark": "^15.0.1",

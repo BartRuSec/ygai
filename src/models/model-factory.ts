@@ -7,6 +7,7 @@ import { enhanceModelConfig, processDynamicClasses } from '../config/enhancers';
 import { createSimpleMessages } from './prompt-template';
 import { createModuleRegistry } from './provider-manager';
 import { createMcpEnabledModel, cleanupMcpModel } from '../mcp';
+import { processModelResponse } from '../utils/response-processor';
 
 /**
  * Creates a model provider instance using LangChain's ChatPromptTemplate
@@ -47,70 +48,17 @@ export const createLangChainProvider = async (
     generate: async (
        messages: BaseMessage[],
        stream?: boolean,
+       onTokenUpdate?: (count: number) => void,
     ): Promise<string | AsyncGenerator<string, void, unknown>> => {
       try {
-        // Create messages using the combined method
         logger.debug(`Generating response with model: ${config.model}`);
-
-        // Use the new combined method to create and format the chat prompt
-
         logger.debug(`Formatted messages: ${JSON.stringify(messages)}`);
-        // For MCP-enabled models, disable streaming as React agent streaming is complex
-        // Use non-streaming approach which works reliably
-        if (stream && !(finalModel as any)._mcpClient) {
-          // Use the correct streaming method based on the model
-          const streamingMethod = finalModel.stream;
-          
-          if (!streamingMethod) {
-            throw new Error(`Model does not support streaming`);
-          }
-          
-          const streamingResponse = await streamingMethod.call(finalModel, messages);
-
-          return (async function* () {
-            let hasContent = false;
-            
-            for await (const chunk of streamingResponse) {
-              const chunkAny = chunk as any;
-              let contentPiece = '';
-
-              // Handle regular model streaming formats
-              if (chunkAny.content) {
-                contentPiece = chunkAny.content.toString();
-              } else if (chunkAny.text) {
-                contentPiece = chunkAny.text.toString();
-              } else if (chunkAny.delta?.content) {
-                contentPiece = chunkAny.delta.content.toString();
-              } else if (typeof chunkAny === 'string') {
-                contentPiece = chunkAny;
-              }
-
-              if (contentPiece) {
-                hasContent = true;
-                yield contentPiece;
-              }
-            }
-
-            // Append newline only if there was any content
-            if (hasContent) {
-              yield '\n';
-            }
-          })();
-        } else {
-          // Check if this is a React agent (MCP-enabled model)
-          if ((finalModel as any)._mcpClient) {
-            // React agent expects { messages: [...] } format
-            const response = await finalModel.invoke({ messages });
-            // Extract the last message content from the agent response
-            const lastMessage = response.messages[response.messages.length - 1];
-            return lastMessage.content.toString() + "\n" || '';
-          } else {
-            // Regular model expects messages array directly
-            const response = await finalModel.invoke(messages);
-            const responseContent = response.content as any;
-            return responseContent?.toString()+"\n" || '';
-          }
-        }
+        
+        // Delegate response processing to utility
+        return await processModelResponse(finalModel, messages, {
+          stream: stream || false,
+          onTokenUpdate
+        });
       } catch (error) {
         throw new Error(`Error generating response: ${JSON.stringify(error)}`);
       }
@@ -129,9 +77,8 @@ export const createLangChainProvider = async (
  * @param provider The provider package name
  * @returns The chat model class or undefined if not found
  */
-export const findLangchainClass = (module: any, provider: string, expectedClassName:string): any => {
+export const findLangchainClass = (module: any, _provider: string, expectedClassName:string): any => {
   // Try to get the class name from our mapping
-  // const expectedClassName = getChatModelClassName(provider);
   
   // If we have a mapping for this provider, try to use it first
   if (expectedClassName && module[expectedClassName] && typeof module[expectedClassName] === 'function') {

@@ -30,6 +30,7 @@ export interface PromptConfig {
   pre?: HookConfig; // Pre-execution hook
   post?: HookConfig; // Post-execution hook
   mcp?: string[] | string; // MCP servers to use for this prompt
+  output?: 'plain' | 'markdown'; // Output formatting (default: markdown)
 }
 
 // Resolved prompt configuration (with prompt values resolved to strings)
@@ -37,6 +38,7 @@ export type ResolvedPromptConfig = Omit<PromptConfig, 'system' | 'user'> & {
   system?: string; // Always resolved to string
   user?: string; // Always resolved to string
   mcp?: string[] | string; // MCP servers to use for this prompt
+  output?: 'plain' | 'markdown'; // Output formatting (default: markdown)
 };
 
 // MCP server configuration
@@ -233,5 +235,12 @@ const validatePromptConfig = (promptConfig: any, configName: string): void => {
 
   if (promptConfig.post) {
     validateHookConfig(promptConfig.post, 'post', configName);
+  }
+
+  // Validate output field if present
+  if (promptConfig.output !== undefined) {
+    if (promptConfig.output !== 'plain' && promptConfig.output !== 'markdown') {
+      throw new ConfigValidationError(`"output" in prompt configuration "${configName}" must be either "plain" or "markdown"`);
+    }
   }
 };
