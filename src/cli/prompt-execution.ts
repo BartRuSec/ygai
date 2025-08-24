@@ -5,6 +5,7 @@ import logger from "../utils/logger";
 import { HistoryManager } from "../history";
 import { executeHook, HookContext } from "../hooks";
 import { formatMarkdown, createLoadingIndicator } from "../ui";
+import { determineOutputFormatting } from "../utils/color-detection";
 
 
 export const executePrompt = async (executionOptions: PromptExecutionOptions,isHistory:boolean=false): Promise<void> => {
@@ -66,16 +67,17 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
         
         const {messages,historyMessages}=await createAndFormatChatPrompt( promptConfig.system,promptConfig.user, variables, files,history );
         
-        // Initialize loading indicator for terminal output
-        const loadingIndicator = createLoadingIndicator({
+        // Determine output formatting based on user preferences and terminal capabilities
+        const formatting = determineOutputFormatting(executionOptions.output);
+        
+        // Initialize loading indicator only if it should be shown
+        const loadingIndicator = formatting.shouldShowLoadingIndicator ? createLoadingIndicator({
             message: 'Invoking model...',
-            color: executionOptions.output === 'markdown',
-            isTTY: process.stdout.isTTY === true,
             showTokenCount: true
-        });
+        }) : null;
 
-        // Start loading indicator
-        loadingIndicator.start();
+        // Start loading indicator if available
+        loadingIndicator?.start();
 
         // Stream response
         let fullResponse = '';
@@ -84,16 +86,14 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
             const response = await modelProvider.generate(
                 messages,
                 stream,
-                // Token update callback for real-time token counting
+                // Token update callback for real-time token counting (only if indicator exists)
                 (tokenCount: number) => {
-                    loadingIndicator.updateTokenCount(tokenCount);
+                    loadingIndicator?.updateTokenCount(tokenCount);
                 }
             );
             
             // Stop loading indicator before processing response
-            loadingIndicator.stop();
-    
-            const shouldFormatMarkdown = executionOptions.output === 'markdown' && process.stdout.isTTY === true;
+            loadingIndicator?.stop();
         
             if (stream && typeof response !== 'string') {
                 // Stream output directly without formatting
@@ -103,7 +103,7 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
                 }
             } else if (typeof response === 'string') {
                 // Format non-streaming output if needed
-                const formattedResponse = shouldFormatMarkdown 
+                const formattedResponse = formatting.shouldFormatMarkdown 
                     ? await formatMarkdown(response)
                     : response;
                 process.stdout.write(formattedResponse);
@@ -111,7 +111,7 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
             }
         } catch (generateError) {
             // Ensure loading indicator is stopped on error
-            loadingIndicator.stop();
+            loadingIndicator?.stop();
             throw generateError;
         }
 

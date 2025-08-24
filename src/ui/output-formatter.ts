@@ -1,5 +1,3 @@
-import { html5Email } from './../../node_modules/zod/src/v4/core/regexes';
-
 import { marked } from 'marked';
 import { markedTerminal } from 'marked-terminal';
 import chalk from 'chalk';
@@ -16,18 +14,6 @@ export const formatMarkdown = async (content: string): Promise<string> => {
             tabWidth: 2,
             
         }));
-        
-        // marked.use({
-        //     renderer: {
-        //         list(token) {
-        //             console.log("LIST:",JSON.stringify(token));
-        //             return chalk.reset(token.raw);
-        //         },
-        //         listitem(token) {
-        //             console.log("LISTITEM:",JSON.stringify(token));
-        //             return token.raw; // zachowuje oryginalny bullet/numerek i spacje
-        //         },
-        // }});
 
         //Fix for line formatting in lists
         // We override list and listitem to preserve original bullets and numbering
