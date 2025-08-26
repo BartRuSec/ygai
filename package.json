@@ -1,6 +1,6 @@
 {
   "name": "ygai",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "Yet Another Gen AI CLI Tool",
   "main": "dist/index.js",
   "repository": {
@@ -17,7 +17,6 @@
   "scripts": {
     "build": "node esbuild.config.mjs && shx chmod +x dist/cli.js",
     "build:tsc": "tsc && shx chmod +x dist/cli.js",
-    "build:fast": "npm run build",
     "start": "node dist/cli.js",
     "dev": "ts-node src/cli.ts",
     "clean": "rimraf dist",

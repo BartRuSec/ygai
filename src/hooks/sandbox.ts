@@ -1,5 +1,6 @@
 import * as vm from 'vm';
 import * as path from 'path';
+import { createRequire } from 'module';
 import { HookContext, HookFunction } from './types';
 import logger from '../utils/logger';
 
@@ -13,14 +14,19 @@ const HOOK_TIMEOUT = 5000; // 5 seconds
  * @param hookCode The JavaScript code containing the hook function
  * @param functionName The name of the function to execute
  * @param context The hook context to pass to the function
+ * @param hookFilePath The absolute path to the hook file for proper module resolution
  * @returns The updated context from the hook function
  */
 export const createSandbox = async (
   hookCode: string,
   functionName: string,
-  context: HookContext
+  context: HookContext,
+  hookFilePath: string
 ): Promise<HookContext> => {
   try {
+    // Create a custom require function that resolves modules relative to the hook file
+    const hookRequire = createRequire(hookFilePath);
+    
     // Create a sandbox context with limited access
     const sandbox = {
       // Provide safe utilities
@@ -53,14 +59,14 @@ export const createSandbox = async (
       clearInterval,
       // Allow Promise for async operations
       Promise,
-      // Provide require function for external modules
-      require: require,
+      // Provide require function for external modules (relative to hook file)
+      require: hookRequire,
       // Provide module and exports for CommonJS
       module: { exports: {} },
       exports: {},
-      // Provide __dirname and __filename
-      __dirname: path.dirname(require.resolve('../hooks/sandbox')),
-      __filename: __filename,
+      // Provide __dirname and __filename relative to hook file
+      __dirname: path.dirname(hookFilePath),
+      __filename: hookFilePath,
       // Provide global reference
       global: undefined as any,
       // Provide process for environment access (limited)

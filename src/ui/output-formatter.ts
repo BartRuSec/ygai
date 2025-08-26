@@ -1,6 +1,7 @@
 import { marked } from 'marked';
 import { markedTerminal } from 'marked-terminal';
 import logger from '../utils/logger';
+import chalk from 'chalk';
 
 /**
 * Centralized markdown formatting function
@@ -15,7 +16,6 @@ export const formatMarkdown = async (content: string): Promise<string> => {
             // width: process.stdout.columns || 80,
             // reflowText: true,
             tabWidth: 2,
-            
         }));
 
         //Fix for line formatting in lists
@@ -37,7 +37,7 @@ export const formatMarkdown = async (content: string): Promise<string> => {
                         (item as any)._listIndent = listIndent;
                         return "\n"+this.listitem(item);
                     });
-                    return items.join('');
+                    return items.join('')+"\n";
                 },
                 listitem(item) {
                     const idx = (item as any)._index as number;
@@ -71,6 +71,9 @@ export const formatMarkdown = async (content: string): Promise<string> => {
      
                         if (tok.type === 'text'){
                             return marked.Lexer.lexInline(tok.raw).reduce((acc,t)=>{
+                                //Hack for codespan in text
+                                if (t.type==='codespan') return acc+chalk.yellow(t.raw);
+                                
                                 const f = (this as any)[t.type];
                                 const content=nl.includes(t.type) ? "\n":""+ (f ? f.call(this, t) : t.raw)
                                 return acc+ content.replace(/\n$/, '');
