@@ -24,7 +24,7 @@ export const executeHook = async (hookConfig: HookConfig, context: HookContext):
     const hookCode = readFile(hookConfig.file);
     
     // Execute in sandbox
-    const result = await createSandbox(hookCode, hookConfig.function, context);
+    const result = await createSandbox(hookCode, hookConfig.function, context, resolvedPath);
     
     logger.debug(`Hook executed successfully: ${hookConfig.file}:${hookConfig.function}`);
     return result;
