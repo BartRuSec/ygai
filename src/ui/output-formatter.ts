@@ -37,7 +37,7 @@ export const formatMarkdown = async (content: string): Promise<string> => {
                         (item as any)._listIndent = listIndent;
                         return "\n"+this.listitem(item);
                     });
-                    return items.join('')+"\n";
+                    return items.join('')+(currentLevel===0? "\n":"");
                 },
                 listitem(item) {
                     const idx = (item as any)._index as number;
@@ -83,7 +83,7 @@ export const formatMarkdown = async (content: string): Promise<string> => {
                         const result = fn ? fn.call(this, tok) : tok.raw;
                        
                         if (nl.includes(tok.type))
-                            return "\n" + result;                        
+                            return "\n" + result.replace(/\n$/, '');                        
                         return result;
                     }).join('') : rawContent;
                     

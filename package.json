@@ -1,6 +1,6 @@
 {
   "name": "ygai",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Yet Another Gen AI CLI Tool",
   "main": "dist/index.js",
   "repository": {
