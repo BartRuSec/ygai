@@ -1,16 +1,19 @@
 import { marked } from 'marked';
 import { markedTerminal } from 'marked-terminal';
-import chalk from 'chalk';
+import logger from '../utils/logger';
 
 /**
 * Centralized markdown formatting function
 * Configures marked with terminal rendering
 */
+
+const nl=["code","table","blockquote","heading","hr"]
+
 export const formatMarkdown = async (content: string): Promise<string> => {
     try {
         marked.use(markedTerminal({
-            width: process.stdout.columns || 80,
-            reflowText: true,
+            // width: process.stdout.columns || 80,
+            // reflowText: true,
             tabWidth: 2,
             
         }));
@@ -20,42 +23,75 @@ export const formatMarkdown = async (content: string): Promise<string> => {
         marked.use({
             renderer: {
                 list(token) {
+                    // Calculate nesting level - if not set, this is top level (0)
+                    const currentLevel = (token as any)._nestingLevel ?? 0;
+                    // Calculate indentation at list level based on nesting
+                    const listIndent = '  '.repeat(currentLevel);
                     
                     let index = 0;
-                    return token.items.map(item => {
-                        
+                    const items = token.items.map(item => {
                         (item as any)._index = index++;
                         (item as any)._parentOrdered = token.ordered;
                         (item as any)._parentStart = token.start ?? 1;
-                        return this.listitem(item);
-                    }).join('');
+                        (item as any)._nestingLevel = currentLevel;
+                        (item as any)._listIndent = listIndent;
+                        return "\n"+this.listitem(item);
+                    });
+                    return items.join('');
                 },
                 listitem(item) {
-                    // Teraz mamy tylko jeden argument, ale możemy odczytać index z _index
                     const idx = (item as any)._index as number;
                     const ordered = (item as any)._parentOrdered as boolean;
                     const start = (item as any)._parentStart as number;
+                    const nestingLevel = (item as any)._nestingLevel ?? 0;
                     
-                    const bullet = ordered ? `${start + idx}. ` : '- ';
+                    // Use indentation calculated at list level
+                    const indent = (item as any)._listIndent || '';
                     
-                    // Obcinamy bullet z raw
-                    const rawContent = item.raw.slice(bullet.length);
-                    
-                    // Inline tokens
-                    const inlineTokens = marked.Lexer.lexInline(rawContent);
-                    const inner = inlineTokens.map(tok => {
+                    // Handle task lists first (they have special checkbox formatting)
+                    let bullet: string;
+                    if (item.task) {
+                        bullet = indent + (item.checked ? '- [x] ' : '- [ ] ');
+                    } else {
+                        // Try to detect original bullet, but fallback to computed one
+                        const bulletMatch = item.raw.match(/^(\s*)([*+-]|\d+[.)])\s*/);
+                        const originalBullet = bulletMatch ? bulletMatch[2] : (ordered ? `${start + idx}.` : '-');
+                        bullet = indent + originalBullet + ' ';
+                    }
+
+                    // Extract content after the original bullet (not our generated bullet)
+                    const originalBulletMatch = item.raw.match(/^(\s*)([*+-]|\d+[.)]|\[[x ]\])\s*/i);
+                    const originalBulletLength = originalBulletMatch ? originalBulletMatch[0].length : 0;
+                    const rawContent = item.raw.slice(originalBulletLength);
+                    const inner = item.tokens ? item.tokens.map(tok => {
+                        // For nested list tokens, increment the nesting level
+                        if (tok.type === 'list') {
+                            (tok as any)._nestingLevel = nestingLevel + 1;
+                        }
+     
+                        if (tok.type === 'text'){
+                            return marked.Lexer.lexInline(tok.raw).reduce((acc,t)=>{
+                                const f = (this as any)[t.type];
+                                const content=nl.includes(t.type) ? "\n":""+ (f ? f.call(this, t) : t.raw)
+                                return acc+ content.replace(/\n$/, '');
+                            },"");
+                        }                                
                         const fn = (this as any)[tok.type];
-                        return fn ? fn.call(this, tok) : tok.raw;
-                    }).join('');
+                        const result = fn ? fn.call(this, tok) : tok.raw;
+                       
+                        if (nl.includes(tok.type))
+                            return "\n" + result;                        
+                        return result;
+                    }).join('') : rawContent;
                     
-                    return bullet + inner + '\n';
+                    return bullet + inner;
                 }
             }
         });
         
         return await marked(content);
     } catch (error) {
-        // Fallback to raw content on parsing error
+        // logger.error(`Error formatting markdown: ${error}`);
         return content;
     }
 };
