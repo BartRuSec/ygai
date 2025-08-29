@@ -3,6 +3,7 @@ import { loadConfig } from '../config';
 import { setVerbose } from '../utils/logger';
 import logger from '../utils/logger';
 import { CommonOptions } from './prompt-params';
+import { updateLoadingStage } from '../ui';
 
 
 

@@ -2,6 +2,8 @@ import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { loadConfig } from "../config";
 import logger from "../utils/logger";
+import debug from "debug";
+import { updateLoadingStage } from "../ui";
 
 /**
  * Creates an MCP-enabled model by wrapping the base model with a React agent
@@ -26,7 +28,8 @@ export const createMcpEnabledModel = async (baseModel: any, mcpServerNames: stri
   
   // Build mcpServers object for MultiServerMCPClient
   const mcpServers: Record<string, any> = {};
-  
+
+
   mcpServerNames.forEach(serverName => {
     if (config.mcp![serverName]) {
       mcpServers[serverName] = config.mcp![serverName];
@@ -42,9 +45,10 @@ export const createMcpEnabledModel = async (baseModel: any, mcpServerNames: stri
   }
   
   try {
-    logger.debug(`Creating MCP client with servers: ${Object.keys(mcpServers).join(', ')}`);
+    updateLoadingStage('MCP connect...');
+    //logger.debug(`Creating MCP client with servers: ${Object.keys(mcpServers).join(', ')}`);
     
-    // Create MCP client
+    // Create MCP client with stderr piped to route through logger
     const mcpClient = new MultiServerMCPClient({
       throwOnLoadError: true,
       prefixToolNameWithServerName: false,
@@ -54,6 +58,7 @@ export const createMcpEnabledModel = async (baseModel: any, mcpServerNames: stri
     
     // Get tools from MCP servers
     const tools = await mcpClient.getTools();
+    
     logger.debug(`Retrieved ${tools.length} tools from MCP servers`);
     
     if (tools.length === 0) {
@@ -76,6 +81,7 @@ export const createMcpEnabledModel = async (baseModel: any, mcpServerNames: stri
     
   } catch (error) {
     logger.error(`Error creating MCP-enabled model: ${error}`);
+    // Loading indicator will be stopped automatically by logger event
     // Return original model on error to ensure functionality continues
     return baseModel;
   }

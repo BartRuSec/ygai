@@ -5,6 +5,7 @@ import { commonSetup, readStdin } from './utils';
 import { addCommonPromptOptions } from './prompt-options';
 import { exec } from 'child_process';
 import { executePrompt } from './prompt-execution';
+import { startLoading } from '../ui';
 //import { createPromptContext } from './prompt-handler';
 //import { processFileContext, executeModelRequest } from './execution-flow';
 
@@ -23,6 +24,9 @@ export const configurePromptCommand = (program: Command): Command => {
   promptCommand
     .action(async (promptName, promptArgs, options: CommonOptions) => {
       try {
+        // Start loading indicator first
+        startLoading({ message: 'Warming up...', showTokenCount: true });
+        
         // Common setup
         const config = commonSetup(program, options);
         const stdin=await readStdin()
@@ -42,6 +46,7 @@ export const configurePromptCommand = (program: Command): Command => {
 
   
       } catch (error) {
+        // Loading indicator will be stopped automatically by logger event
         logger.error(`${error}`);
         process.exit(1);
       }

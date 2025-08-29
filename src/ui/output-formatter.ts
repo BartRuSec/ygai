@@ -26,6 +26,8 @@ export const formatMarkdown = async (content: string): Promise<string> => {
             // width: process.stdout.columns || 80,
             // reflowText: true,
             tabWidth: 2,
+              link: chalk.blueBright,
+              href: chalk.blueBright.underline,
         }));
 
         //Fix for line formatting in lists

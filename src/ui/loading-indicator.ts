@@ -1,33 +1,26 @@
 import type { LoadingIndicatorOptions, LoadingIndicatorResult } from './types';
-import { getColorCapabilities } from '../utils/color-detection';
+import { getColorCapabilities } from './color-detection';
 import chalk from 'chalk';
+import { use } from 'marked';
 
 // Classic spinner frames
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'] as const;
 
 const createSpinnerFrame = (frameIndex: number, message: string, useColor: boolean, tokenCount?: number): string => {
     const frame = SPINNER_FRAMES[frameIndex % SPINNER_FRAMES.length];
-    
-    const displayMessage = tokenCount !== undefined 
-        ? `${message} (${tokenCount} tokens)`
-        : message;
-    
-    if (useColor) {
-        const tokenPart = tokenCount !== undefined 
-            ? ` (${chalk.cyan(tokenCount)} tokens)`
-            : '';
-        const basePart = tokenCount !== undefined 
-            ? message
-            : displayMessage;
-        return `${chalk.cyan(frame)} ${chalk.white(basePart)}${tokenPart}`;
-    } else {
-        return `${frame} ${displayMessage}`;
-    }
+    const framePart = useColor ? chalk.cyan(frame) : frame;
+    const messagePart = useColor ? chalk.white(message) : message;
+    let tokenPart = '';
+
+    if (tokenCount !== undefined && tokenCount >=0) 
+        tokenPart= useColor ? `${chalk.white(" (")}${chalk.cyan(tokenCount)}${chalk.white(" tokens retrieved)")}`: ` (${tokenCount} tokens retrieved)`;
+    return `${framePart} ${messagePart}${tokenPart}`
+
 };
 
 const renderFrame = (frame: string, shouldShow: boolean): void => {
-    if (shouldShow) {
-        // Clear line and write frame
+    if (shouldShow) {    
+        // // Clear line and write frame
         process.stdout.write('\x1b[2K\r' + frame);
     }
 };
@@ -40,7 +33,7 @@ const clearLine = (shouldShow: boolean): void => {
 
 export const createLoadingIndicator = (options: LoadingIndicatorOptions): LoadingIndicatorResult => {
     const colorCapabilities = getColorCapabilities();
-    const message = options.message || 'Invoking model...';
+    let currentMessage = options.message || 'Invoking model...';
     const useColor = colorCapabilities.shouldUseColors;
     const shouldShow = colorCapabilities.shouldShowLoadingIndicator;
     const showTokenCount = options.showTokenCount === true;
@@ -59,7 +52,7 @@ export const createLoadingIndicator = (options: LoadingIndicatorOptions): Loadin
         currentTokenCount = 0;
 
         // Render initial frame (no token count initially)
-        const initialFrame = createSpinnerFrame(frameIndex, message, useColor);
+        const initialFrame = createSpinnerFrame(frameIndex, currentMessage, useColor);
         renderFrame(initialFrame, shouldShow);
 
         // Start animation loop - updates every 100ms (10fps)
@@ -67,7 +60,7 @@ export const createLoadingIndicator = (options: LoadingIndicatorOptions): Loadin
             frameIndex++;
             const frame = createSpinnerFrame(
                 frameIndex, 
-                message, 
+                currentMessage, 
                 useColor, 
                 showTokenCount && currentTokenCount > 0 ? currentTokenCount : undefined
             );
@@ -105,12 +98,18 @@ export const createLoadingIndicator = (options: LoadingIndicatorOptions): Loadin
         // Token count will be displayed on next 10fps animation frame
     };
 
+    const updateStage = (stage: string): void => {
+        currentMessage = stage;
+        // Stage will be displayed on next 10fps animation frame
+    };
+
     const isRunning = (): boolean => running;
 
     return {
         start,
         stop,
         isRunning,
-        updateTokenCount
+        updateTokenCount,
+        updateStage
     };
 };

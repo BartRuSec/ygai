@@ -9,6 +9,7 @@ import { commonSetup, readStdin } from './utils';
 
 import logger from '../utils/logger';
 import { executePrompt } from './prompt-execution';
+import { startLoading } from '../ui/ui-manager';
 
 /**
  * Configure the chat command
@@ -26,7 +27,8 @@ export const configureChatCommand = (program: Command): Command => {
   //  .option('-i, --interactive', 'Enter interactive mode (continuous conversation until exit)')
     .action(async (promptName, promptArgs, options: CommonOptions & { interactive?: boolean }) => {
       try {
-        
+        startLoading({ message: 'Warming up...', showTokenCount: true });
+              
            // Common setup
         const config = commonSetup(program, options);
         

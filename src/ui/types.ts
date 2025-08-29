@@ -8,4 +8,5 @@ export interface LoadingIndicatorResult {
     stop: () => void;
     isRunning: () => boolean;
     updateTokenCount: (count: number) => void;
+    updateStage: (stage: string) => void;
 }

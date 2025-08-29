@@ -1,6 +1,6 @@
 {
   "name": "ygai",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Yet Another Gen AI CLI Tool",
   "main": "dist/index.js",
   "repository": {
@@ -21,7 +21,8 @@
     "dev": "ts-node src/cli.ts",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
-    "test": "vitest run src/**/*.test.ts"
+    "test": "vitest run src/**/*.test.ts",
+    "publish": "npm run clean build && npm publish"
   },
   "keywords": [
     "cli",

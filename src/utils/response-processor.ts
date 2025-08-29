@@ -28,36 +28,6 @@ const extractContentFromChunk = (chunk: any): string => {
 };
 
 /**
- * Extracts token count increment from chunk (for summing)
- */
-const extractTokenIncrement = (chunk: any): number => {
-  // For chunk-based streaming, estimate tokens from content in this chunk
-  const content = extractContentFromChunk(chunk);
-  return content ? Math.ceil(content.length / 4) : 0;
-};
-
-/**
- * Extracts total token count from response metadata (for final responses)
- */
-const extractTotalTokenCount = (response: any): number => {
-  // Check for usage information in various LangChain formats
-  if (response.usage_metadata?.output_tokens) {
-    return response.usage_metadata.output_tokens;
-  }
-  if (response.usage?.completion_tokens) {
-    return response.usage.completion_tokens;
-  }
-  if (response.response_metadata?.usage?.output_tokens) {
-    return response.response_metadata.usage.output_tokens;
-  }
-  if (response.response_metadata?.tokenUsage?.completionTokens) {
-    return response.response_metadata.tokenUsage.completionTokens;
-  }
-  
-  return 0; // No metadata available
-};
-
-/**
  * Processes streaming response from LangChain model
  */
 const processStreamingResponse = async function* (
@@ -75,8 +45,8 @@ const processStreamingResponse = async function* (
       yield contentPiece;
       
       // Add token increment for this chunk
-      const tokenIncrement = extractTokenIncrement(chunk);
-      totalTokens += tokenIncrement;
+      
+      totalTokens += 1;
       
       // Update token count (only after first token)
       if (options.onTokenUpdate && totalTokens > 0) {
@@ -110,8 +80,8 @@ const processNonStreamingResponse = async (
       fullResponse += contentPiece;
       
       // Add token increment for this chunk
-      const tokenIncrement = extractTokenIncrement(chunk);
-      totalTokens += tokenIncrement;
+      
+      totalTokens += 1;
       
       // Update token count in real-time (only after first token)
       if (options.onTokenUpdate && totalTokens > 0) {
@@ -132,14 +102,8 @@ const processNonStreamingResponse = async (
  * Shared helper for processing invoke responses with token counting
  */
 const processInvokeResponseWithTokens = (content: string, response: any, options: ResponseProcessorOptions): void => {
-  // Try to get token count from response metadata or estimate from content
-  const metadataTokenCount = extractTotalTokenCount(response);
-  const estimatedTokenCount = Math.ceil(content.length / 4);
-  const tokenCount = metadataTokenCount > 0 ? metadataTokenCount : estimatedTokenCount;
-  
-  if (options.onTokenUpdate && tokenCount > 0) {
-    options.onTokenUpdate(tokenCount);
-  }
+  // For non-streaming, we don't need token counting during invoke
+  // Token counting is only relevant for streaming mode
 };
 
 /**

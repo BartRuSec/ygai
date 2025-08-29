@@ -4,8 +4,7 @@ import { PromptExecutionOptions } from "./prompt-params"
 import logger from "../utils/logger";
 import { HistoryManager } from "../history";
 import { executeHook, HookContext } from "../hooks";
-import { formatMarkdown, createLoadingIndicator } from "../ui";
-import { determineOutputFormatting } from "../utils/color-detection";
+import { startLoading, updateLoadingStage, updateTokenCount, stopLoading, getOutputFormatting, formatOutput } from "../ui";
 
 
 export const executePrompt = async (executionOptions: PromptExecutionOptions,isHistory:boolean=false): Promise<void> => {
@@ -39,6 +38,8 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
     try {
         // Execute pre-hook if configured
         if (promptConfig?.pre) {
+            updateLoadingStage('Pre-hook execution...');
+            
             const hookContext: HookContext = {
                 variables: { ...variables },
                 files,
@@ -68,16 +69,10 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
         const {messages,historyMessages}=await createAndFormatChatPrompt( promptConfig.system,promptConfig.user, variables, files,history );
         
         // Determine output formatting based on user preferences and terminal capabilities
-        const formatting = determineOutputFormatting(executionOptions.output);
+        const formatting = getOutputFormatting(executionOptions.output);
         
-        // Initialize loading indicator only if it should be shown
-        const loadingIndicator = formatting.shouldShowLoadingIndicator ? createLoadingIndicator({
-            message: 'Invoking model...',
-            showTokenCount: true
-        }) : null;
-
-        // Start loading indicator if available
-        loadingIndicator?.start();
+        // Update to model invocation stage
+        updateLoadingStage('Invoking model...');
 
         // Stream response
         let fullResponse = '';
@@ -86,14 +81,14 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
             const response = await modelProvider.generate(
                 messages,
                 stream,
-                // Token update callback for real-time token counting (only if indicator exists)
+                // Token update callback for real-time token counting
                 (tokenCount: number) => {
-                    loadingIndicator?.updateTokenCount(tokenCount);
+                    updateTokenCount(tokenCount);
                 }
             );
             
             // Stop loading indicator before processing response
-            loadingIndicator?.stop();
+            await stopLoading();
         
             if (stream && typeof response !== 'string') {
                 // Stream output directly without formatting
@@ -103,20 +98,19 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
                 }
             } else if (typeof response === 'string') {
                 // Format non-streaming output if needed
-                const formattedResponse = formatting.shouldFormatMarkdown 
-                    ? await formatMarkdown(response)
-                    : response;
+                const formattedResponse = await formatOutput(response, formatting.shouldFormatMarkdown);
                 process.stdout.write(formattedResponse);
                 fullResponse = response;
             }
         } catch (generateError) {
-            // Ensure loading indicator is stopped on error
-            loadingIndicator?.stop();
+            // Loading indicator will be stopped automatically by logger event
             throw generateError;
         }
 
         // Execute post-hook if configured
         if (promptConfig?.post) {
+            startLoading({ message: 'Post-hook execution...', showTokenCount: false });
+            
             const hookContext: HookContext = {
                 variables,
                 files,
@@ -131,6 +125,7 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
             };
             
             await executeHook(promptConfig.post, hookContext);
+            stopLoading();
             logger.debug('Post-hook executed successfully');
         }
 
@@ -142,11 +137,14 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
         }
 
     } catch (error) {
+        // Loading indicator will be stopped automatically by logger event
         throw new Error(`Error executing prompt: ${error.message}`);
     } finally {
         // Cleanup MCP resources
         if (modelProvider?.cleanup) {
             await modelProvider.cleanup();
         }
+        // Final cleanup of loading indicator (in case it wasn't stopped)
+        await stopLoading();
     }
 }
