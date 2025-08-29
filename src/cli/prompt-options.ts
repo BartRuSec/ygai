@@ -16,6 +16,7 @@ export const addCommonPromptOptions = (program: Command): Command => {
     .option('-s, --system-prompt <prompt>', 'Override the system prompt')
     .option('--plain', 'Disable colored output formatting')
     .option('--dry-run', 'Simulate execution without API calls')
+    .option('-o, --out <file>', 'Output raw response to file')
     .option('-D, --define <definition>', 'Define template variables', (value, previous = {}) => {
     // Parse the name=value format
     const match = value.match(/^([^=]+)=(.*)$/);

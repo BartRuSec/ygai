@@ -5,6 +5,7 @@ import logger from "../utils/logger";
 import { HistoryManager } from "../history";
 import { executeHook, HookContext } from "../hooks";
 import { startLoading, updateLoadingStage, updateTokenCount, stopLoading, getOutputFormatting, formatOutput } from "../ui";
+import fs from 'fs';
 
 
 export const executePrompt = async (executionOptions: PromptExecutionOptions,isHistory:boolean=false): Promise<void> => {
@@ -105,6 +106,16 @@ export const executePrompt = async (executionOptions: PromptExecutionOptions,isH
         } catch (generateError) {
             // Loading indicator will be stopped automatically by logger event
             throw generateError;
+        }
+
+        // Write raw response to file if outFile is specified
+        if (executionOptions.outFile && fullResponse) {
+            try {
+                await fs.promises.writeFile(executionOptions.outFile, fullResponse, 'utf8');
+                logger.info(`Response written to: ${executionOptions.outFile}`);
+            } catch (error) {
+                logger.error(`Failed to write to file ${executionOptions.outFile}: ${error.message}`);
+            }
         }
 
         // Execute post-hook if configured

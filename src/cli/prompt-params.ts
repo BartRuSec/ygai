@@ -13,6 +13,7 @@ export interface CommonOptions {
   stream?: boolean;
   systemPrompt?: string;
   dryRun?: boolean;
+  out?: string;
 }
 
 export interface PromptExecutionOptions {
@@ -25,6 +26,7 @@ export interface PromptExecutionOptions {
   userInput?: string; // Add userInput to execution options
   promptName?: string; // Add promptName for hook context
   output: 'plain' | 'markdown'; // Output formatting resolved from config and CLI options
+  outFile?: string; // Output file path
 }
 
 
@@ -58,7 +60,7 @@ export async function processPromptArgs(
   config: Config,
   promptName: string | undefined,
   promptArgs: string[],
-  options: { file?: string[]; stream?: boolean; dryRun?: boolean; model?: string; systemPrompt?: string; define?: any; plain?: boolean },
+  options: { file?: string[]; stream?: boolean; dryRun?: boolean; model?: string; systemPrompt?: string; define?: any; plain?: boolean; out?: string },
   stdinContent?: string
 ): Promise<PromptExecutionOptions> {
  
@@ -120,6 +122,7 @@ export async function processPromptArgs(
     variables: options.define!==undefined? options.define:{},
     promptName: promptName,
     output: outputFormat,
+    outFile: options.out,
   };
 
 
