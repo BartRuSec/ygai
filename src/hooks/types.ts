@@ -1,32 +1,28 @@
-import { HookConfig, ResolvedPromptConfig } from '../config/schema';
-import { FileContext } from '../file-handlers';
+import { WorkflowState, TransientWorkflowData, ExecutionConfig } from '../workflows/types';
 
 /**
- * Context passed to hook functions
+ * Hook function return value - direct variables object to merge into workflow
  */
-export interface HookContext {
-  variables: Record<string, any>;
-  files?: FileContext[];
-  userInput: string; // Always available, even if empty string
-  response?: string; // Only available in post hooks
-  promptConfig: ResolvedPromptConfig; // Full prompt configuration for preprocessing
-  metadata: {
-    promptName: string;
-    model: string;
-    timestamp: Date;
-  };
-}
+export type HookResult = Record<string, any>;
 
 /**
- * Hook execution result
+ * Hook execution result with metadata
  */
-export interface HookResult {
-  context: HookContext;
+export interface HookExecutionResult {
+  result: HookResult;
   success: boolean;
   error?: string;
 }
 
 /**
- * Hook function signature
+ * Hook function signature - aligned with workflow node pattern
+ * @param state Persistent workflow state
+ * @param data Transient workflow data (mutable)
+ * @param config Optional execution configuration for advanced use cases
+ * @returns Object with optional variables to add to workflow
  */
-export type HookFunction = (context: HookContext) => HookContext | Promise<HookContext>;
+export type HookFunction = (
+  state: WorkflowState,
+  data: TransientWorkflowData,
+  config?: ExecutionConfig
+) => HookResult | Promise<HookResult>;

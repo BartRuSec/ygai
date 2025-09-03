@@ -1,7 +1,8 @@
 import * as vm from 'vm';
 import * as path from 'path';
 import { createRequire } from 'module';
-import { HookContext, HookFunction } from './types';
+import { HookFunction, HookResult } from './types';
+import { WorkflowState, TransientWorkflowData, ExecutionConfig } from '../workflows/types';
 import logger from '../utils/logger';
 
 /**
@@ -13,16 +14,20 @@ const HOOK_TIMEOUT = 5000; // 5 seconds
  * Creates a secure sandbox and executes a hook function
  * @param hookCode The JavaScript code containing the hook function
  * @param functionName The name of the function to execute
- * @param context The hook context to pass to the function
+ * @param state Persistent workflow state
+ * @param data Transient workflow data
+ * @param config Optional execution configuration
  * @param hookFilePath The absolute path to the hook file for proper module resolution
- * @returns The updated context from the hook function
+ * @returns The hook result with variables to update
  */
 export const createSandbox = async (
   hookCode: string,
   functionName: string,
-  context: HookContext,
+  state: WorkflowState,
+  data: TransientWorkflowData,
+  config: ExecutionConfig | undefined,
   hookFilePath: string
-): Promise<HookContext> => {
+): Promise<HookResult> => {
   try {
     // Create a custom require function that resolves modules relative to the hook file
     const hookRequire = createRequire(hookFilePath);
@@ -127,37 +132,28 @@ export const createSandbox = async (
       throw new Error(`"${functionName}" is not a function`);
     }
 
-    // Create a deep copy of the context to prevent external modifications
-    const contextCopy = JSON.parse(JSON.stringify(context));
+    // Create safe copies to prevent external modifications
+    // Convert BaseMessages to plain objects that hooks can easily work with
+    const stateCopy = {
+      messages: state.messages ? state.messages.map(msg => ({
+        type: msg.getType(),
+        content: msg.content?.toString() || ''
+      })) : []
+    } as any; // Cast to avoid type issues with simplified message structure
+    const dataCopy = JSON.parse(JSON.stringify(data));
+    const configCopy = config ? JSON.parse(JSON.stringify(config)) : undefined;
 
-    // Execute the hook function with the context
+    // Execute the hook function with the new parameters
     logger.debug(`Executing hook function: ${functionName}`);
-    const result = await Promise.resolve(hookFunction(contextCopy));
+    const result = await Promise.resolve(hookFunction(stateCopy, dataCopy, configCopy));
 
-    // Validate the result
-    if (!result || typeof result !== 'object') {
-      throw new Error('Hook function must return a context object');
-    }
-
-    // Ensure required properties are present
-    if (!result.variables || typeof result.variables !== 'object') {
-      throw new Error('Hook function must return a context with variables object');
-    }
-
-    if (typeof result.userInput !== 'string') {
-      throw new Error('Hook function must return a context with userInput string');
-    }
-
-    if (!result.promptConfig || typeof result.promptConfig !== 'object') {
-      throw new Error('Hook function must return a context with promptConfig object');
-    }
-
-    if (!result.metadata || typeof result.metadata !== 'object') {
-      throw new Error('Hook function must return a context with metadata object');
+    // Validate the result - should be an object of variables to merge
+    if (result !== null && result !== undefined && typeof result !== 'object') {
+      throw new Error('Hook function must return an object, null, or undefined');
     }
 
     logger.debug(`Hook function executed successfully: ${functionName}`);
-    return result as HookContext;
+    return result as HookResult;
 
   } catch (error) {
     if (error.message.includes('Script execution timed out')) {

@@ -83,14 +83,14 @@ export class XlsxReader implements FileReader {
         
         return markdown;
       } catch (conversionError) {
-        logger.error(`Error converting XLSX to markdown for file ${filePath}: ${conversionError}`);
+        logger.debug(`Error converting XLSX to markdown for file ${filePath}: ${conversionError}`);
         throw new FileProcessingError(`Error converting XLSX to markdown: ${conversionError.message}`, filePath);
       }
     } catch (error) {
       if (error instanceof FileProcessingError) {
         throw error;
       }
-      logger.error(`Error reading XLSX file ${filePath}: ${error}`);
+      logger.debug(`Error reading file ${filePath}: ${error}`);
       throw new FileProcessingError(`Error reading file: ${error.message}`, filePath);
     }
   }

@@ -1,5 +1,23 @@
 import { Command } from 'commander';
 
+/**
+ * Unified CLI options interface - single source of truth for all CLI commands
+ */
+export interface CliOptions {
+  model?: string;
+  file?: string[];
+  stream?: boolean;
+  systemPrompt?: string;
+  plain?: boolean;
+  dryRun?: boolean;
+  out?: string;
+  define?: Record<string, any>;
+  global?: boolean;
+  verbose?: boolean;
+  session?: string;  // Added for chat command support
+}
+
+
 
 /**
  * Creates a base command with common options
@@ -17,6 +35,7 @@ export const addCommonPromptOptions = (program: Command): Command => {
     .option('--plain', 'Disable colored output formatting')
     .option('--dry-run', 'Simulate execution without API calls')
     .option('-o, --out <file>', 'Output raw response to file')
+    .option('--verbose', 'Enable verbose logging including checkpoint decisions')
     .option('-D, --define <definition>', 'Define template variables', (value, previous = {}) => {
     // Parse the name=value format
     const match = value.match(/^([^=]+)=(.*)$/);

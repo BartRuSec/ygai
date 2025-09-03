@@ -6,74 +6,60 @@ import { StringOutputParser } from "@langchain/core/output_parsers";
 import logger from '../utils/logger';
 import { FileContext } from '../file-handlers';
 
-import { HistoryManager } from '../history';
+// Remove unused import - we now pass existingMessages directly
+
 
 /**
- * Generates a string representation of file contexts
- * @param filesContext Array of file contexts
- * @returns A formatted string of file contexts or null if no contexts provided
- */
-export const generatefilesContextString = (filesContext: FileContext[]): string => {
-  if (!filesContext || filesContext.length === 0) {
-    return null;
-  }
-  return "CONTEXT:\n"+filesContext.map(file => `File:${file.filePath}\nContent:\n${file.content}`).join('"\n\n---\n\n"');
-};
-
-/**
- * Creates and formats a chat prompt in a single operation
+ * Creates and formats a chat prompt - simplified for LangGraph workflow
  * @param systemPrompt The system prompt template
- * @param userPrompt The user prompt template
+ * @param userPrompt The user prompt template  
  * @param variables Variables to use for template substitution
- * @param filesContext Optional array of file contexts
- * @returns The formatted messages
+ * @param existingMessages Optional array of existing messages (file + history)
+ * @returns The formatted messages for LLM
  */
+
+
 export const createAndFormatChatPrompt = async (
   systemPrompt: string,
   userPrompt: string,
   variables: Record<string, any> = {},
-  filesContext?: FileContext[],
-  history?: HistoryManager
-): Promise<{messages:BaseMessage[],historyMessages:BaseMessage[]}>=> {
-  // Create messages array
- 
-  
-
-  const messages:BaseMessage[] = [];
-  const historyMessages: BaseMessage[] = [];
+  existingMessages?: BaseMessage[]
+): Promise<{ messages: BaseMessage[]; humanMessage: HumanMessage[] }> => {
   try {
+    const messages: BaseMessage[] = [];
 
-    const systemMessage= await SystemMessagePromptTemplate.fromTemplate(systemPrompt).invoke(variables);
+    logger.debug('createAndFormatChatPrompt inputs:', {
+      systemPrompt: typeof systemPrompt,
+      userPrompt: typeof userPrompt,
+      variables: typeof variables,
+      existingMessages: Array.isArray(existingMessages),
+      existingMessagesLength: existingMessages?.length
+    });
+
+    // Add system message
+    const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemPrompt).invoke(variables);
+    logger.debug('systemMessage type:', typeof systemMessage, 'isArray:', Array.isArray(systemMessage));
     messages.push(...systemMessage);
-    historyMessages.push(...systemMessage);
-    if (history) {
-      // Get messages from history
-      const historyMessages = await history.getMessages();
-      historyMessages.forEach(msg=> {
-        if (!(msg.getType() === "system")) {
-          messages.push(msg);
-        }
-      })
-    };
-
-  // Add file context if provided
-    if (filesContext && filesContext.length > 0) { 
-      // Generate files context string using the existing function
-      const filesContextString = generatefilesContextString(filesContext);
-      if (filesContextString) {
-        const fileContextMessage = new HumanMessage(filesContextString);
-        messages.push(fileContextMessage);
-        historyMessages.push(fileContextMessage);
-      }
-      
+    
+    // Add existing messages (file context + conversation history from LangGraph)
+    if (existingMessages && existingMessages.length > 0) {
+      messages.push(...existingMessages);
     }
   
-  const user= await HumanMessagePromptTemplate.fromTemplate(userPrompt).invoke(variables);
-  messages.push(...user);
-  historyMessages.push(...user);
+    // Add current user message  
+    let humanMessage:HumanMessage[]=null;
+    if (userPrompt) {
+      // Use configured user template with variable substitution
+      humanMessage= await HumanMessagePromptTemplate.fromTemplate(userPrompt).invoke(variables);
+      messages.push(...humanMessage);
+    } else if (variables.user_input) {
+      // If no user template in config, use CLI user input directly (no templating)
+      humanMessage=[new HumanMessage(variables.user_input)]
+      messages.push(...humanMessage);
+    }
 
-    logger.debug(`Generated messages: ${JSON.stringify(messages)}`);
-    return {messages, historyMessages};
+    logger.debug(`Generated ${messages.length} messages for LLM`);
+    return {messages, humanMessage} ;
   } catch (error) {
     throw new Error(`Error creating and formatting chat prompt: ${error}`);
   }
@@ -108,4 +94,3 @@ export const createSimpleMessages = (
   
   return messages;
 };
-

@@ -63,14 +63,14 @@ export class PdfReader implements FileReader {
         
         return markdown;
       } catch (pdfError) {
-        logger.error(`Error parsing PDF file ${filePath}: ${pdfError}`);
+        logger.debug(`Error parsing PDF file ${filePath}: ${pdfError}`);
         throw new FileProcessingError(`Error parsing PDF: ${pdfError.message}`, filePath);
       }
     } catch (error) {
       if (error instanceof FileProcessingError) {
         throw error;
       }
-      logger.error(`Error reading PDF file ${filePath}: ${error}`);
+      logger.debug(`Error reading file ${filePath}: ${error}`);
       throw new FileProcessingError(`Error reading file: ${error.message}`, filePath);
     }
   }

@@ -7,7 +7,7 @@
 // Re-export modules for programmatic usage
 export * from './config';
 export * from './models';
-export * from './history';
+export * from './workflows';
 export * from './utils/logger';
 export * from './utils/file';
 

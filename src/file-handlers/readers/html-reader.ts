@@ -44,14 +44,14 @@ export class HtmlReader implements FileReader {
         
         return markdown;
       } catch (conversionError) {
-        logger.error(`Error converting HTML to markdown for file ${filePath}: ${conversionError}`);
+        logger.debug(`Error converting HTML to markdown for file ${filePath}: ${conversionError}`);
         throw new FileProcessingError(`Error converting HTML to markdown: ${conversionError.message}`, filePath);
       }
     } catch (error) {
       if (error instanceof FileProcessingError) {
         throw error;
       }
-      logger.error(`Error reading HTML file ${filePath}: ${error}`);
+      logger.debug(`Error reading file ${filePath}: ${error}`);
       throw new FileProcessingError(`Error reading file: ${error.message}`, filePath);
     }
   }

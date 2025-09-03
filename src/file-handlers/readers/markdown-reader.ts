@@ -32,7 +32,7 @@ export class MarkdownReader implements FileReader {
       if (error instanceof FileProcessingError) {
         throw error;
       }
-      logger.error(`Error reading markdown file ${filePath}: ${error}`);
+      logger.debug(`Error reading markdown file ${filePath}: ${error}`);
       throw new FileProcessingError(`Error reading file: ${error.message}`, filePath);
     }
   }

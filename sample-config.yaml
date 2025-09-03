@@ -75,6 +75,19 @@ models:
             };
           }
 
+# Centralized hooks configuration (optional)
+# Define reusable hooks that can be referenced by name in prompts
+hooks:
+  countChars:
+    file: "./examples/hooks/countCharacters.js"
+    function: "countCharacters"
+  countWords:
+    file: "./examples/hooks/countWords.js"
+    function: "countWords"
+  validateInput:
+    file: "./examples/hooks/validation.js"
+    function: "validateUserInput"
+
 # MCP (Model Context Protocol) server configurations
 mcp:
   # Math server using STDIO transport
@@ -128,13 +141,19 @@ prompts:
     alias: t
     system: "Translate this text to {language}. Respond with only the translated text, no explanations or additional text."
     output: plain  # Use plain text output (no markdown formatting)
-    # Example hooks (uncomment to use)
+    # Example hooks - can use centralized hook references or inline definitions
+    # Single hook reference:
+    # pre: countChars
+    # post: countWords
+    # 
+    # Multiple hooks (executed in sequence):
+    # pre: [validateInput, countChars]
+    # post: [countWords]
+    #
+    # Inline hook definition (legacy format):
     # pre:
-    #   file: "./examples/hooks/translatePre.js"
-    #   function: "prepareText"
-    # post:
-    #   file: "./examples/hooks/translatePost.js"
-    #   function: "validateTranslation"
+    #   file: "./examples/hooks/countCharacters.js"
+    #   function: "countCharacters"
   
   # Summarize prompt
   summarize:

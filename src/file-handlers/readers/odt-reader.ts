@@ -25,14 +25,14 @@ export class OdtReader implements FileReader {
         const content= await officeparser.parseOfficeAsync(filePath);
         return content;
       } catch (conversionError) {
-        logger.error(`Error converting ODF to text for file ${filePath}: ${conversionError}`);
+        logger.debug(`Error converting ODF to text for file ${filePath}: ${conversionError}`);
         throw new FileProcessingError(`Error converting ODF to text: ${conversionError.message}`, filePath);
       }
     } catch (error) {
       if (error instanceof FileProcessingError) {
         throw error;
       }
-      logger.error(`Error reading ODF file ${filePath}: ${error}`);
+      logger.debug(`Error reading file ${filePath}: ${error}`);
       throw new FileProcessingError(`Error reading file: ${error.message}`, filePath);
     }
   }
