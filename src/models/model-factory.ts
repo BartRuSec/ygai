@@ -1,12 +1,8 @@
 import { ModelConfig } from '../config/schema';
-import { ModelProvider } from './base';
 import logger from '../utils/logger';
 import { getChatModelClassName} from './provider-mapping';
-import { BaseMessage } from '@langchain/core/messages';
-import { enhanceModelConfig, processDynamicClasses } from '../config/enhancers';
-import { createSimpleMessages } from './prompt-template';
-import { createMcpEnabledModel, cleanupMcpModel } from '../mcp';
-import { processModelResponse } from '../utils/response-processor';
+import { enhanceModelConfig } from '../config/enhancers';
+import { isProviderInstalled, installProviderPackage, loadPackage } from './provider-manager';
 
 /**
  * Creates a model provider instance using LangChain's ChatPromptTemplate
@@ -16,9 +12,8 @@ import { processModelResponse } from '../utils/response-processor';
  */
 export const createLangChainProvider = async (
   module: any,
-  config: ModelConfig,
-  mcpServerNames?: string[]
-): Promise<ModelProvider> => {
+  config: ModelConfig
+): Promise<any> => {
   // Find the appropriate chat model class
   const className=getChatModelClassName(config.provider);
   const ModelClass = findLangchainClass(module, config.provider, className);
@@ -32,37 +27,7 @@ export const createLangChainProvider = async (
   logger.debug(`Enhanced config ${JSON.stringify(enhancedConfig)}`)
   const model = new ModelClass(enhancedConfig);
   
-  // MCP Integration: Create MCP-enabled model if MCP servers are specified
-  const finalModel = mcpServerNames 
-    ? await createMcpEnabledModel(model, mcpServerNames)
-    : model;
-  
-  // Create and return a provider adapter
-  return {
-    generate: async (
-       messages: BaseMessage[],
-       stream?: boolean,
-       onTokenUpdate?: (count: number) => void,
-    ): Promise<string | AsyncGenerator<string, void, unknown>> => {
-      try {
-        logger.debug(`Generating response with model: ${config.model}`);
-        logger.debug(`Formatted messages: ${JSON.stringify(messages)}`);
-        
-        // Delegate response processing to utility
-        return await processModelResponse(finalModel, messages, {
-          stream: stream || false,
-          onTokenUpdate
-        });
-      } catch (error) {
-        throw new Error(`Error generating response: ${JSON.stringify(error)}`);
-      }
-    },
-
-
-    cleanup: async (): Promise<void> => {
-      await cleanupMcpModel(finalModel);
-    },
-  };
+  return model;
 };
 
 /**
@@ -103,4 +68,37 @@ export const findLangchainClass = (module: any, _provider: string, expectedClass
   }
   
   return undefined;
+};
+
+/**
+ * Loads a model based on the configuration
+ * @param config The model configuration
+ * @returns The model instance
+ */
+export const loadModel = async (config: ModelConfig): Promise<any> => {
+  const { provider } = config;
+
+  // Check if the provider is already installed
+  const isInstalled = isProviderInstalled(provider);
+  if (isInstalled) {
+    logger.debug(`Provider "${provider}" is already installed`);
+  } else {
+    // If not installed, try to install it
+    logger.info(`Model provider "${provider}" not found. Attempting to install...`);
+    const installSuccess = await installProviderPackage(provider);
+    if (!installSuccess) {
+      throw new Error(`Failed to install provider "${provider}"`);
+    }
+    logger.info(`Provider "${provider}" installed successfully`);
+  }
+  
+  // Dynamically load the provider using the plugin manager
+  try {
+    const providerModule = await loadPackage(provider);
+    
+    // Create a provider adapter using LangChain's ChatPromptTemplate
+    return createLangChainProvider(providerModule, config);
+  } catch (error) {
+    throw new Error(`Failed to load model provider "${provider}": ${error}`);
+  }
 };

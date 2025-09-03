@@ -56,13 +56,11 @@ export const updateTokenCount = (count: number): void => {
 };
 
 /**
- * Stop the loading indicator and wait for it to complete
+ * Stop the loading indicator synchronously
  */
-export const stopLoading = async (): Promise<void> => {
+export const stopLoading = (): void => {
     if (currentIndicator?.isRunning()) {
         currentIndicator.stop();
-        // Wait for next tick to ensure terminal processes the clear
-        await new Promise(resolve => process.nextTick(resolve));
     }
     currentIndicator = null;
 };

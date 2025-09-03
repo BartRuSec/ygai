@@ -1,9 +1,36 @@
 import path from 'path';
 import yaml from 'js-yaml';
 import { Config, PromptConfig, validateConfig, ConfigValidationError } from './schema';
-import { fileExists, readFile, getConfigPath, getHomeDirectory } from '../utils/file';
-import { resolvePromptValue } from '../models/prompt-resolver';
+import { fileExists, readFile, getConfigPath, getHomeDirectory, resolvePath } from '../utils/file';
 import logger from '../utils/logger';
+
+/**
+ * Recursively resolves all 'file' properties in a config object to absolute paths (mutates in place)
+ * @param obj The object to process (mutated in place)
+ * @param configPath The path to the config file (for relative path resolution)
+ */
+const resolveFilePaths = (obj: any, configPath: string): void => {
+  if (!obj || typeof obj !== 'object') {
+    return;
+  }
+
+  const basePath = path.dirname(configPath);
+
+  if (Array.isArray(obj)) {
+    obj.forEach(item => resolveFilePaths(item, configPath));
+    return;
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === 'file' && typeof value === 'string') {
+      // Mutate file path to absolute path
+      obj[key] = resolvePath(value, basePath);
+    } else if (value && typeof value === 'object') {
+      // Recursively process nested objects
+      resolveFilePaths(value, configPath);
+    }
+  }
+};
 
 /**
  * Loads the configuration from the specified file
@@ -20,7 +47,11 @@ const loadConfigFile = (filePath: string): Config | null => {
     logger.debug(`Loading configuration from: ${filePath}`);
     const content = readFile(filePath);
     const config = yaml.load(content) as any;
-    return validateConfig(config);
+    const validatedConfig = validateConfig(config);
+    
+    // Resolve all file paths to absolute paths (mutates config)
+    resolveFilePaths(validatedConfig, filePath);
+    return validatedConfig;
   } catch (error) {
     if (error instanceof ConfigValidationError) {
       throw error;
@@ -109,70 +140,3 @@ export const getPromptConfig = (config: Config, promptName?: string): PromptConf
   return null;
 };
 
-/**
- * Gets the system prompt for a given prompt configuration and variables
- * @param config The configuration object
- * @param promptName The name of the prompt configuration to use
- * @param variables The variables to use for rendering the prompt
- * @param systemPromptOverride An optional system prompt to override the one from the configuration
- * @returns The rendered system prompt
- */
-export const getSystemPrompt = (
-  config: Config,
-  promptName?: string,
-  variables: Record<string, any> = {},
-  systemPromptOverride?: string
-): string => {
-  // Use the override if provided
-  if (systemPromptOverride) {
-    return systemPromptOverride;
-  }
-  
-  // Get the prompt configuration
-  const promptConfig = getPromptConfig(config, promptName);
-  
-  // Use the system prompt from the configuration if available
-  if (promptConfig?.system) {
-    const resolvedPrompt = resolvePromptValue(promptConfig.system);
-    if (resolvedPrompt) {
-      return resolvedPrompt;
-    }
-  }
-  
-  // Use a default system prompt if none is provided
-  return 'Respond helpfully to the user\'s request based on the provided context.';
-};
-
-/**
- * Gets the user prompt for a given prompt configuration and variables
- * @param config The configuration object
- * @param promptName The name of the prompt configuration to use
- * @param userPrompt The user prompt to use
- * @param variables The variables to use for rendering the prompt
- * @returns The rendered user prompt
- */
-export const getUserPrompt = (
-  config: Config,
-  promptName?: string,
-  userPrompt?: string,
-  variables: Record<string, any> = {}
-): string => {
-  // Get the prompt configuration
-  const promptConfig = getPromptConfig(config, promptName);
-  
-  // Use the provided user prompt if available
-  if (userPrompt) {
-    return userPrompt;
-  }
-  
-  // Use the user prompt from the configuration if available
-  if (promptConfig?.user) {
-    const resolvedPrompt = resolvePromptValue(promptConfig.user);
-    if (resolvedPrompt) {
-      return resolvedPrompt;
-    }
-  }
-  
-  // Return an empty string if no user prompt is provided
-  return '';
-};

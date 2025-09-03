@@ -1,6 +1,6 @@
 {
   "name": "ygai",
-  "version": "0.0.17",
+  "version": "0.1.0",
   "description": "Yet Another Gen AI CLI Tool",
   "main": "dist/index.js",
   "repository": {
@@ -21,8 +21,7 @@
     "dev": "ts-node src/cli.ts",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
-    "test": "vitest run src/**/*.test.ts",
-    "publish": "npm run clean build && npm publish"
+    "test": "vitest run src/**/*.test.ts"
   },
   "keywords": [
     "cli",
@@ -35,11 +34,15 @@
   "dependencies": {
     "@langchain/core": "^0.3.5",
     "@langchain/langgraph": "^0.4.6",
+    "@langchain/langgraph-checkpoint-sqlite": "^0.2.1",
     "@langchain/mcp-adapters": "^0.6.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^12.2.0",
     "chalk": "^5.6.0",
     "commander": "^11.1.0",
     "exceljs": "^4.4.0",
     "isbinaryfile": "^5.0.4",
+    "js-tiktoken": "^1.0.17",
     "js-yaml": "^4.1.0",
     "mammoth": "^1.9.1",
     "marked": "^15.0.12",

@@ -27,6 +27,7 @@ const renderFrame = (frame: string, shouldShow: boolean): void => {
 
 const clearLine = (shouldShow: boolean): void => {
     if (shouldShow) {
+        // Clear entire line, move cursor to beginning, then move to new line
         process.stdout.write('\x1b[2K\r');
     }
 };
@@ -57,6 +58,11 @@ export const createLoadingIndicator = (options: LoadingIndicatorOptions): Loadin
 
         // Start animation loop - updates every 100ms (10fps)
         intervalId = setInterval(() => {
+            // Check if still running to prevent race condition
+            if (!running) {
+                return;
+            }
+            
             frameIndex++;
             const frame = createSpinnerFrame(
                 frameIndex, 
@@ -82,6 +88,7 @@ export const createLoadingIndicator = (options: LoadingIndicatorOptions): Loadin
             return;
         }
 
+        // Set running to false FIRST to prevent any pending callbacks from rendering
         running = false;
 
         if (intervalId) {
@@ -89,7 +96,7 @@ export const createLoadingIndicator = (options: LoadingIndicatorOptions): Loadin
             intervalId = null;
         }
 
-        // Clear the spinner line
+        // Clear the spinner line immediately
         clearLine(shouldShow);
     };
 

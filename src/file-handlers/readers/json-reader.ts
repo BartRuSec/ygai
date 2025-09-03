@@ -32,14 +32,14 @@ export class JsonReader implements FileReader {
         // Format the output with the file name as a header and the JSON in a code block
         return `\`\`\`json\n${formattedJson}\n\`\`\``;
       } catch (jsonError) {
-        logger.error(`Error parsing JSON file ${filePath}: ${jsonError}`);
+        logger.debug(`Error parsing JSON file ${filePath}: ${jsonError}`);
         throw new FileProcessingError(`Error parsing JSON: ${jsonError.message}`, filePath);
       }
     } catch (error) {
       if (error instanceof FileProcessingError) {
         throw error;
       }
-      logger.error(`Error reading JSON file ${filePath}: ${error}`);
+      logger.debug(`Error reading file ${filePath}: ${error}`);
       throw new FileProcessingError(`Error reading file: ${error.message}`, filePath);
     }
   }

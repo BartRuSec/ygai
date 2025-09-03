@@ -50,14 +50,14 @@ export class DocxReader implements FileReader {
         // Format the output with the file name as a header
         return markdown;
       } catch (conversionError) {
-        logger.error(`Error converting DOCX to markdown for file ${filePath}: ${conversionError}`);
+        logger.debug(`Error converting DOCX to markdown for file ${filePath}: ${conversionError}`);
         throw new FileProcessingError(`Error converting DOCX to markdown: ${conversionError.message}`, filePath);
       }
     } catch (error) {
       if (error instanceof FileProcessingError) {
         throw error;
       }
-      logger.error(`Error reading DOCX file ${filePath}: ${error}`);
+      logger.debug(`Error reading file ${filePath}: ${error}`);
       throw new FileProcessingError(`Error reading file: ${error.message}`, filePath);
     }
   }
