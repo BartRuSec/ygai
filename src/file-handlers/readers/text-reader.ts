@@ -29,7 +29,7 @@ export class TextReader implements FileReader {
       if (error instanceof FileProcessingError) {
         throw error;
       }
-      logger.error(`Error reading text file ${filePath}: ${error}`);
+      logger.debug(`Error reading file ${filePath}: ${error}`);
       throw new FileProcessingError(`Error reading file: ${error.message}`, filePath);
     }
   }

@@ -8,7 +8,17 @@ import chalk from 'chalk';
 * Configures marked with terminal rendering
 */
 
-const nl=["code","table","blockquote","heading","hr"]
+// newline after these elements
+const nl=[
+    'code',
+    'blockquote',
+    'html',
+    'heading',
+    'hr',
+    'paragraph',
+    'table',
+    'br'
+]
 
 export const formatMarkdown = async (content: string): Promise<string> => {
     try {
@@ -16,6 +26,8 @@ export const formatMarkdown = async (content: string): Promise<string> => {
             // width: process.stdout.columns || 80,
             // reflowText: true,
             tabWidth: 2,
+              link: chalk.blueBright,
+              href: chalk.blueBright.underline,
         }));
 
         //Fix for line formatting in lists
@@ -37,7 +49,7 @@ export const formatMarkdown = async (content: string): Promise<string> => {
                         (item as any)._listIndent = listIndent;
                         return "\n"+this.listitem(item);
                     });
-                    return items.join('')+(currentLevel===0? "\n":"");
+                    return items.join('')+(currentLevel===0? "\n\n":"");
                 },
                 listitem(item) {
                     const idx = (item as any)._index as number;
@@ -68,22 +80,26 @@ export const formatMarkdown = async (content: string): Promise<string> => {
                         if (tok.type === 'list') {
                             (tok as any)._nestingLevel = nestingLevel + 1;
                         }
-     
+
                         if (tok.type === 'text'){
                             return marked.Lexer.lexInline(tok.raw).reduce((acc,t)=>{
                                 //Hack for codespan in text
                                 if (t.type==='codespan') return acc+chalk.yellow(t.raw);
-                                
                                 const f = (this as any)[t.type];
-                                const content=nl.includes(t.type) ? "\n":""+ (f ? f.call(this, t) : t.raw)
-                                return acc+ content.replace(/\n$/, '');
+                                let content=(f ? f.call(this, t) : t.raw);
+                                return acc+ content.replace(/\n$/g,'');
                             },"");
-                        }                                
+                        } 
                         const fn = (this as any)[tok.type];
                         const result = fn ? fn.call(this, tok) : tok.raw;
-                       
-                        if (nl.includes(tok.type))
-                            return "\n" + result.replace(/\n$/, '');                        
+                        if (nl.includes(tok.type)) 
+                            return   "\n" + (result
+                                .replace(/\n+$/,'')                               
+                                .split("\n")
+                                .map(line=>{
+                                    return (item as any)._listIndent + line;
+                                })
+                                .join('\n'));                                                                                                                              
                         return result;
                     }).join('') : rawContent;
                     

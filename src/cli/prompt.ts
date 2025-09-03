@@ -1,10 +1,12 @@
 import { Command } from 'commander';
 import logger from '../utils/logger';
-import { CommonOptions, processPromptArgs } from './prompt-params';
+import { CliOptions } from './prompt-options';
 import { commonSetup, readStdin } from './utils';
 import { addCommonPromptOptions } from './prompt-options';
 import { exec } from 'child_process';
-import { executePrompt } from './prompt-execution';
+import { WorkflowManager } from '../workflows/workflow-manager';
+import { resolveExecutionConfig } from './execution-config-resolver';
+import { startLoading } from '../ui';
 //import { createPromptContext } from './prompt-handler';
 //import { processFileContext, executeModelRequest } from './execution-flow';
 
@@ -21,27 +23,34 @@ export const configurePromptCommand = (program: Command): Command => {
   
   addCommonPromptOptions(promptCommand);
   promptCommand
-    .action(async (promptName, promptArgs, options: CommonOptions) => {
+    .action(async (promptName, promptArgs, options: CliOptions) => {
       try {
+        // Start loading indicator first
+        startLoading({ message: 'Warming up...', showTokenCount: true });
+        
         // Common setup
         const config = commonSetup(program, options);
-        const stdin=await readStdin()
+        const stdin = await readStdin();
         
-        // Process command arguments
-        const executeOptions = await processPromptArgs(
+        // Resolve execution config using functional approach
+        const executionConfig = resolveExecutionConfig(
           config,
+          options,
           promptName,
           promptArgs,
-          options,
-          stdin
+          stdin || undefined
         );
         
-       logger.debug('returning base options',executeOptions);
-       await executePrompt(executeOptions)
-       process.exit(0);
+        // Execute using WorkflowManager
+        const workflowManager = new WorkflowManager();
+        await workflowManager.execute(executionConfig);
+        
+        // If we reach here, workflow succeeded
+        process.exit(0);
 
   
       } catch (error) {
+        // Loading indicator will be stopped automatically by logger event
         logger.error(`${error}`);
         process.exit(1);
       }

@@ -9,7 +9,6 @@ models:
     # Replace with your actual API key
     apiKey: "your-openai-api-key"
     temperature: 0.7
-  
   # Additional model configurations
   anthropic:
     provider: "@langchain/anthropic"
@@ -32,6 +31,8 @@ models:
     provider: "@langchain/openai"
     model: "llama-3.1-8b-instruct"
     apiKey: "not-needed-for-local"
+    contextWindow: 128000
+    maxOutputTokens: 4096
     configuration:
       baseURL: "http://localhost:1234/v1"
       agent: unsecure  # Disables HTTPS certificate checking - DEVELOPMENT ONLY
@@ -51,29 +52,19 @@ models:
         keepAlive: true
         maxSockets: 5
         maxFreeSockets: 2
-  
-  # Example with inline function for request transformation
-  inline-function-example:
-    provider: "@langchain/openai"
-    model: "gpt-4"
-    apiKey: "your-openai-api-key"
-    configuration:
-      # Custom request transformer using inline function
-      requestTransformer:
-        _inline: |
-          () => {
-            return (request) => {
-              // Add custom headers
-              return {
-                ...request,
-                headers: {
-                  ...request.headers,
-                  'X-Custom-Client': 'ygai',
-                  'X-Request-ID': Math.random().toString(36).substr(2, 9)
-                }
-              };
-            };
-          }
+
+# Centralized hooks configuration (optional)
+# Define reusable hooks that can be referenced by name in prompts
+hooks:
+  countChars:
+    file: "./examples/hooks/countCharacters.js"
+    function: "countCharacters"
+  countWords:
+    file: "./examples/hooks/countWords.js"
+    function: "countWords"
+  validateInput:
+    file: "./examples/hooks/validation.js"
+    function: "validateUserInput"
 
 # MCP (Model Context Protocol) server configurations
 mcp:
@@ -128,13 +119,19 @@ prompts:
     alias: t
     system: "Translate this text to {language}. Respond with only the translated text, no explanations or additional text."
     output: plain  # Use plain text output (no markdown formatting)
-    # Example hooks (uncomment to use)
+    # Example hooks - can use centralized hook references or inline definitions
+    # Single hook reference:
+    # pre: countChars
+    # post: countWords
+    # 
+    # Multiple hooks (executed in sequence):
+    # pre: [validateInput, countChars]
+    # post: [countWords]
+    #
+    # Inline hook definition (legacy format):
     # pre:
-    #   file: "./examples/hooks/translatePre.js"
-    #   function: "prepareText"
-    # post:
-    #   file: "./examples/hooks/translatePost.js"
-    #   function: "validateTranslation"
+    #   file: "./examples/hooks/countCharacters.js"
+    #   function: "countCharacters"
   
   # Summarize prompt
   summarize:

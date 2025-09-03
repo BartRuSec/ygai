@@ -2,6 +2,9 @@
 
 A command-line tool written in TypeScript for communication with LLMs via the command line. The main goal is to experiment with various models and prompts directly from the command line interface using the LangChain.js library.
 
+> **⚠️ Early Development Warning**  
+> This tool is in very early development stage. Expect conceptual breaking changes as the architecture evolves. APIs, configuration formats, and core concepts may change significantly between versions. Use with caution in production environments.
+
 ## Prerequisites
 
 - Node.js (version 14 or higher)
@@ -54,13 +57,17 @@ models:
     model: "gpt-4"
     apiKey: "your-openai-api-key"
     temperature: 0.7
+    # Optional: Context window and output token limits
+    contextWindow: 128000
+    maxOutputTokens: 4096
   
-  # Additional model configurations
+  # Additional model configurations with context limits
   anthropic:
     provider: "@langchain/anthropic"
-    model: "claude-3-7-sonnet-202502219"
+    model: "claude-3-5-sonnet-20241022"
     apiKey: "your-anthropic-api-key"
     temperature: 0.7
+
   
   # Example of OpenRouter configuration
   openrouter-deepseek:
@@ -73,16 +80,15 @@ models:
       httpAgent:
        timeout: 3000
 
-  
   # Example of local model configuration (development only)
-  # WARNING: agent:unsecure disables certificate checking - use only for development with local models
+  # WARNING: httpAgent:unsecure disables certificate checking - use only for development with local models
   local-model:
     provider: "@langchain/openai"
     model: "llama-3.1-8b-instruct"
     apiKey: "not-needed-for-local"
     configuration:
       baseURL: "http://localhost:1234/v1"
-      httpAgent: unsecure  # Disables HTTPS certificate checking - DEVELOPMENT ONLY (you can use rejectUnauthorized: false as well)
+      httpAgent: unsecure  # Disables HTTPS certificate checking - DEVELOPMENT ONLY
 
 # NOTE: Latest LangChain providers may not expose the httpAgent configuration option.
 # Please refer to the specific provider's documentation for available configuration options.
@@ -92,10 +98,17 @@ prompts:
   default:
     system: "You are a helpful assistant. Respond to the user's request in a clear and concise manner."
   
-  # Translate prompt
+  # Translate prompt with hooks
   translate:
     alias: t
     system: "Translate this text to {language}. Respond with only the translated text, no explanations or additional text."
+    vars: [language]  # Required variables
+    pre:
+      file: "./examples/hooks/countCharacters.js"
+      function: "countCharacters"
+    post:
+      file: "./examples/hooks/countWords.js"
+      function: "countWords"
   
   # Summarize prompt
   summarize:
@@ -181,75 +194,105 @@ The tool supports pre and post-execution hooks that allow you to run custom Java
 
 #### Hook Configuration
 
-Hooks are configured in the prompt configuration using the `pre` and `post` fields:
+Hooks can be configured in two ways:
+
+1. **Centralized Hooks** (recommended): Define reusable hooks once and reference them by name
+2. **Inline Hooks** (legacy): Define hooks directly in prompt configurations
+
+##### Centralized Hooks Configuration
+
+Define hooks in the `hooks` section for reusability across multiple prompts:
+
+```yaml
+# Define reusable hooks
+hooks:
+  countChars:
+    file: "./examples/hooks/countCharacters.js"
+    function: "countCharacters"
+  countWords:
+    file: "./examples/hooks/countWords.js"
+    function: "countWords"
+  validateInput:
+    file: "./examples/hooks/validation.js"
+    function: "validateUserInput"
+
+prompts:
+  # Single hook reference
+  analyze:
+    system: "Analyze the provided text."
+    pre: countChars
+    post: countWords
+  
+  # Multiple hooks (executed in sequence)
+  detailed-analysis:
+    system: "Perform detailed text analysis."
+    pre: [validateInput, countChars]
+    post: [countWords]
+  
+  # Mixed format - hook references and inline hooks
+  mixed-example:
+    system: "Process user input"
+    pre: countChars     # Reference to centralized hook
+    post:               # Inline hook definition
+      file: "./examples/hooks/countWords.js"
+      function: "countWords"
+```
+
+##### Inline Hooks Configuration (Legacy)
+
+You can still define hooks directly in prompt configurations for backward compatibility:
 
 ```yaml
 prompts:
-  translate:
-    vars: [language]  # Required variables
-    alias: t
-    system: "Translate this text to {language}. Respond with only the translated text."
+  analyze-legacy:
+    system: "Analyze the provided text."
     pre:
-      file: "./examples/hooks/translatePre.js"
-      function: "prepareText"
+      file: "./examples/hooks/countCharacters.js"
+      function: "countCharacters"
     post:
-      file: "./examples/hooks/translatePost.js"
-      function: "validateTranslation"
+      file: "./examples/hooks/countWords.js"
+      function: "countWords"
 ```
 
 #### Hook Structure
 
-Hook files should export functions that accept a context object and return the modified context:
+Hook files should export functions that receive workflow state, data, and configuration parameters, and return variables to add to the workflow:
 
 ```javascript
-// Pre-hook example
-function prepareText(context) {
-  // Validate required variables
-  if (!context.variables.language) {
-    throw new Error('Language variable is required');
+// Pre-hook example - count characters in all messages
+function countCharacters(state, data, config) {
+  console.log('Pre-hook: Counting characters in all messages...');
+  
+  // Count characters in all messages in state
+  let totalCharacters = 0;
+  if (state.messages) {
+    for (const message of state.messages) {
+      totalCharacters += (message.content || '').length;
+    }
   }
   
-  // Modify variables or prompt configuration
-  context.variables.language = context.variables.language.toLowerCase();
+  console.log(`Total characters in conversation: ${totalCharacters}`);
   
-  // Access user input
-  if (context.userInput.includes('technical')) {
-    context.promptConfig.system += ' Use technical terminology.';
-  }
-  
-  return context;
+  // Return variables to add to workflow
+  return {
+    total_characters: totalCharacters
+  };
 }
 
-module.exports = { prepareText };
+module.exports = { countCharacters };
 ```
 
-```javascript
-// Post-hook example
-function validateTranslation(context) {
-  // Access the response
-  if (context.response.trim().length === 0) {
-    throw new Error('Translation appears to be empty');
-  }
-  
-  // Log or audit the result
-  console.log(`Translated to ${context.variables.language}`);
-  
-  return context;
-}
+#### Hook Parameters
 
-module.exports = { validateTranslation };
-```
+Hook functions receive three parameters:
 
-#### Hook Context
-
-The context object passed to hooks contains:
-
-- `variables`: Object containing all variables (from -D flags and built-ins)
-- `files`: Array of file contexts if files were provided
-- `userInput`: The user's input text (always available, even if empty)
-- `response`: The AI model's response (only available in post-hooks)
-- `promptConfig`: The resolved prompt configuration (can be modified in pre-hooks)
-- `metadata`: Object containing prompt name, model, and timestamp
+- **`state`**: Persistent workflow state (contains conversation messages)
+- **`data`**: Transient workflow data with:
+  - `data.variables`: All workflow variables (from -D flags and built-ins)
+  - `data.processedFiles`: Array of processed file contexts if files were provided
+  - `data.workflowId`: Current workflow execution ID
+  - `data.startTime`: Workflow start timestamp
+- **`config`** (optional): Execution configuration for advanced use cases
 
 #### Hook Capabilities
 
@@ -276,8 +319,8 @@ If required variables are missing, the tool will show an error message before ex
 #### Example Hook Files
 
 See the `examples/hooks/` directory for complete hook examples:
-- `translatePre.js`: Input validation and preprocessing
-- `translatePost.js`: Output validation and logging
+- `countCharacters.js`: Pre-hook that counts characters in all conversation messages
+- `countWords.js`: Post-hook that counts words in all conversation messages
 
 ### MCP (Model Context Protocol) Integration
 
@@ -443,23 +486,49 @@ The CLI is organized into three main commands:
 
 ### Chat Command
 
-Chat history is stored in `.ygai-chat` file in the current folder. To clear the conversation, simply remove the `.ygai-chat` file.
+Chat history is now stored in SQLite databases (`.ygai/conversations.db` in current folder or `~/.ygai/conversations.db` globally). Each session maintains separate conversation history.
 
 ```bash
 # Available options
 ygai chat -h
 
-# Start a chat session with default prompt
-
+# Start a chat session with default session
 ygai chat "Hello, how are you?"
 # Or using the alias
 ygai c "Hello, how are you?"
+
+# Use named sessions for different conversations
+ygai c --session work "Let's discuss the project"
+ygai c --session research "Help me with my research"
 
 # Using predefined prompts from sample-config.yaml
 ygai c d  # Get current date
 ygai c t -Dlanguage=Polish "Hello world!"  # Translate to Polish
 ygai c s -f document.pdf  # Summarize a PDF file
 ```
+
+#### Legacy Chat History Migration
+
+> **Note**: The old `.ygai-chat` files are no longer used. If you have previous conversation history you want to preserve, you can include it in new conversations using this workaround:
+
+```bash
+# Rename your old chat file to JSON format
+mv .ygai-chat ygai-chat.json
+
+# Include it as context in a new conversation
+ygai c -f ygai-chat.json "Please review our previous conversation history and continue where we left off"
+```
+
+For this to work effectively, create a prompt that handles conversation history:
+
+```yaml
+prompts:
+  continue-chat:
+    system: "You are continuing a conversation. The file ygai-chat.json contains previous conversation history. Review it and seamlessly continue the conversation based on that context."
+    user: "{user_input}"
+```
+
+Then use: `ygai c continue-chat -f ygai-chat.json "Let's continue our discussion"`
 
 ### Prompt Command
 
@@ -487,6 +556,10 @@ ygai p -s "You are a helpful assistant" "What is the capital of Poland?"
 
 # Pipe input
 echo "What is the capital of Poland?" | ygai p
+
+# Use global configuration and storage
+ygai p --global "What is the capital of Poland?"
+ygai c --global --session work "Let's start a global session"
 ```
 
 ### LLMs Command
@@ -531,7 +604,29 @@ This manual approach gives you more control over which specific versions of prov
 ```bash
 # Enable verbose logging (works with any command)
 ygai -v p "What is the capital of Poland?"
+
+# Use global configuration and storage instead of local
+ygai p --global "What is the capital of Poland?"
+ygai c --global --session work "Let's start a global session"
 ```
+
+#### Local vs Global Storage
+
+The tool supports two storage locations for configuration and conversation history:
+
+- **Local storage** (default): Uses `.ygai/` directory in the current working directory
+  - Configuration: `.ygai/config.yaml`
+  - Conversations: `.ygai/conversations.db`
+
+- **Global storage**: Uses `.ygai/` directory in the user's home directory
+  - Configuration: `~/.ygai/config.yaml`
+  - Conversations: `~/.ygai/conversations.db`
+
+**Note**: LLM providers are always installed globally in `~/.ygai/node_modules/` regardless of the `--global` flag.
+
+Use the `--global` flag to switch to global storage for any command. This is useful when you want to:
+- Share configuration across multiple projects
+- Maintain global conversation sessions that persist across different working directories
 
 ## Development
 
@@ -570,7 +665,7 @@ I'd love to hear from you. Please reach out to discuss how you can contribute to
 
 ## Development Tools
 
-This tool has been developed in a hybrid mode, where the core architecture and logic were hand-crafted, while some parts of the implementation were created with the assistance of various LLM models and the Cline VSCode extension.
+This tool has been developed in a hybrid mode, where the core architecture and logic were hand-crafted, while some parts of the implementation were created with the assistance of various LLM models and tools.
 
 ## License
 

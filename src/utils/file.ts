@@ -104,3 +104,13 @@ export const writeFile = (filePath: string, content: string): void => {
   ensureDirectoryExists(dir);
   fs.writeFileSync(filePath, content, 'utf-8');
 };
+
+/**
+ * Gets the path to the conversations database file
+ */
+export const getConversationsDbPath = (useGlobal: boolean = false): string => {
+  const baseDir = useGlobal ? getHomeDirectory() : process.cwd();
+  const ygaiDir = getYgaiDirectory(baseDir);
+  ensureDirectoryExists(ygaiDir);
+  return path.join(ygaiDir, 'conversations.db');
+};

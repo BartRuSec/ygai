@@ -30,14 +30,14 @@ export class YamlReader implements FileReader {
         const yamlObject = yaml.load(content);
         return `\`\`yaml\n${content}\n\`\`\``;
       } catch (yamlError) {
-        logger.error(`Error parsing YAML file ${filePath}: ${yamlError}`);
+        logger.debug(`Error parsing YAML file ${filePath}: ${yamlError}`);
         throw new FileProcessingError(`Error parsing YAML: ${yamlError.message}`, filePath);
       }
     } catch (error) {
       if (error instanceof FileProcessingError) {
         throw error;
       }
-      logger.error(`Error reading YAML file ${filePath}: ${error}`);
+      logger.debug(`Error reading file ${filePath}: ${error}`);
       throw new FileProcessingError(`Error reading file: ${error.message}`, filePath);
     }
   }

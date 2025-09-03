@@ -89,7 +89,7 @@ export const readFileAsMarkdown = async (filePath: string): Promise<FileContext>
     if (error instanceof FileProcessingError) {
       throw error;
     }
-    logger.error(`Error reading file ${filePath}: ${error}`);
+    logger.debug(`Error reading file ${filePath}: ${error}`);
     throw new FileProcessingError(`Error reading file: ${error.message}`, filePath);
   }
 };
@@ -106,7 +106,7 @@ export const readFilesAsMarkdown = async (filePaths: string[]): Promise<FileCont
     try {
       return await readFileAsMarkdown(filePath);
     } catch (error) {
-      logger.error(`Error reading file ${filePath}: ${error}`);
+      logger.debug(`Error reading file ${filePath}: ${error}`);
       return {
         filePath,
         content: `Error reading file: ${error.message}`

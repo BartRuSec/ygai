@@ -2,7 +2,8 @@ import { Command } from 'commander';
 import { loadConfig } from '../config';
 import { setVerbose } from '../utils/logger';
 import logger from '../utils/logger';
-import { CommonOptions } from './prompt-params';
+import { CliOptions } from './prompt-options';
+import { updateLoadingStage } from '../ui';
 
 
 
@@ -24,7 +25,7 @@ export const handleVerboseLogging = (options: any): void => {
  */
 
 
-export const commonSetup = (program: Command, options: CommonOptions) => {
+export const commonSetup = (program: Command, options: CliOptions) => {
   const globalOptions = program.opts();
   handleVerboseLogging(globalOptions);
   const config = loadConfig();
