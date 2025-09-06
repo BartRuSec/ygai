@@ -17,7 +17,8 @@ const config = {
     'mammoth', 
     'officeparser',
     'exceljs',
-    'turndown'
+    'turndown',
+    '@langchain/langgraph-checkpoint-sqlite'
   ]
 };
 

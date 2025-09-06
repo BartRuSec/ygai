@@ -24,8 +24,7 @@ export class WorkflowManager {
     }
     
     const dbPath = getConversationsDbPath(executionConfig.useGlobal);
-    const db = new Database(dbPath);
-    const sqliteSaver = new SqliteSaver(db);
+    const sqliteSaver = SqliteSaver.fromConnString(dbPath);
     
     // Wrap SqliteSaver with SelectiveSaver to only checkpoint output node
     const checkpointer = new SelectiveSaver(sqliteSaver, {
