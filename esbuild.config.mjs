@@ -18,7 +18,7 @@ const config = {
     'officeparser',
     'exceljs',
     'turndown',
-    'better-sqlite3'
+    '@langchain/langgraph-checkpoint-sqlite'
   ]
 };
 

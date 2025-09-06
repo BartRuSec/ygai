@@ -26,6 +26,8 @@ export const configureChatCommand = (program: Command): Command => {
 
   chatCommand
     .option('--session <name>', 'Use specific conversation session (default: "default")')
+    .option('--checkpoint <id>', 'Start conversation from specific checkpoint ID')
+    .option('-g, --global', 'Use global storage instead of local')
   //  .option('-i, --interactive', 'Enter interactive mode (continuous conversation until exit)')
     .action(async (promptName, promptArgs, options: CliOptions & { interactive?: boolean }) => {
       try {

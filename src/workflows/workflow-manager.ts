@@ -4,7 +4,6 @@
  */
 
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite';
-import Database from 'better-sqlite3';
 import { BaseMessage } from '@langchain/core/messages';
 import { ExecutionConfig, WorkflowState, TransientWorkflowData, WorkflowRuntimeConfig } from './types';
 import { buildConversationWorkflow } from './workflow-builder';
@@ -25,8 +24,7 @@ export class WorkflowManager {
     }
     
     const dbPath = getConversationsDbPath(executionConfig.useGlobal);
-    const db = new Database(dbPath);
-    const sqliteSaver = new SqliteSaver(db);
+    const sqliteSaver = SqliteSaver.fromConnString(dbPath);
     
     // Wrap SqliteSaver with SelectiveSaver to only checkpoint output node
     const checkpointer = new SelectiveSaver(sqliteSaver, {
@@ -38,7 +36,11 @@ export class WorkflowManager {
     let history: BaseMessage[] = [];
     try {
       const threadId = executionConfig.sessionName || 'default';
-      const checkpoint = await checkpointer.getTuple({ configurable: { thread_id: threadId } });
+      const config: any = { configurable: { thread_id: threadId } };
+      if (executionConfig.checkpointId) {
+        config.configurable.checkpoint_id = executionConfig.checkpointId;
+      }
+      const checkpoint = await checkpointer.getTuple(config);
       if (checkpoint?.checkpoint?.channel_values?.messages && Array.isArray(checkpoint.checkpoint.channel_values.messages)) {
         history = checkpoint.checkpoint.channel_values.messages;
         logger.debug(`Loaded ${history.length} messages from conversation history`);

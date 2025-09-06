@@ -478,11 +478,12 @@ The prompt files can contain any text content and support the same variable subs
 
 ## Usage
 
-The CLI is organized into three main commands:
+The CLI is organized into four main commands:
 
 - `prompt` (or `p`): Generate responses using AI models
+- `chat` (or `c`): Execute chat-like conversation with history
+- `session` (or `s`): Manage conversation sessions and checkpoints  
 - `llms` (or `l`): Manage LLM providers
-- `chat` (or `c`): Execute chat-like conversation
 
 ### Chat Command
 
@@ -529,6 +530,100 @@ prompts:
 ```
 
 Then use: `ygai c continue-chat -f ygai-chat.json "Let's continue our discussion"`
+
+### Session Management
+
+The tool provides comprehensive session and checkpoint management for conversation history stored in SQLite databases.
+
+#### Session Commands
+
+```bash
+# List all conversation sessions
+ygai session list
+# Or using the alias
+ygai s ls
+
+# List global sessions instead of local
+ygai s list --global
+
+# Show detailed information about a session
+ygai s show [session-name] # Show details of [session-name] session
+ygai s show            # Show details of 'default' session
+
+# Show session from a specific checkpoint
+ygai s show --checkpoint abc123def456
+ygai s show [session-name] --checkpoint abc123def456
+
+# Delete a conversation session
+ygai s delete [session-name]
+ygai s delete              # Delete 'default' session
+
+# List checkpoints for a session
+ygai s checkpoints [session-name] 
+ygai s checkpoints            # List checkpoints for 'default'
+
+# Clear all conversation data
+ygai s clear           # Clear all local conversation data
+ygai s clear --global  # Clear all global conversation data
+
+# Use plain output format (useful for scripting)
+ygai s list --plain
+ygai s checkpoints --plain
+```
+
+#### Starting Chat from Checkpoint
+
+You can start or resume a conversation from any specific checkpoint:
+
+```bash
+# Start chat from a specific checkpoint
+ygai chat --checkpoint abc123def456 "Continue the conversation"
+
+# Start named session from checkpoint
+ygai c --session myproject --checkpoint abc123def456 "Let's continue"
+
+# Start global session from checkpoint
+ygai c --global --checkpoint abc123def456 "Resume global chat"
+```
+
+#### Session Management Examples
+
+```bash
+# Basic workflow
+ygai c --session work "Start working on the project"
+ygai c --session work "Add more details"
+ygai s list                    # See all sessions
+ygai s show work               # View work session details
+ygai s checkpoints work        # List all checkpoints in work session
+
+# Resume from specific point in conversation
+ygai s checkpoints work        # Find the checkpoint ID you want
+ygai c --session work --checkpoint abc123def456 "Continue from here"
+
+# Clean up old sessions
+ygai s list                    # Review existing sessions  
+ygai s delete old-project      # Remove specific session
+ygai s clear                   # Remove all session data (be careful!)
+```
+
+#### Output Formatting
+
+Session commands support both formatted (markdown) and plain text output:
+
+- **Terminal output**: Displays formatted tables with colors and styling
+- **Piped output**: Automatically switches to plain text format (tab-separated)
+- **Force plain**: Use `--plain` flag to force plain text output
+
+```bash
+# Formatted output (default in terminal)
+ygai s list
+
+# Plain text output (automatic when piped)
+ygai s list | grep myproject
+
+# Force plain text output
+ygai s list --plain
+```
 
 ### Prompt Command
 

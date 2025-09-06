@@ -35,6 +35,7 @@ export interface ExecutionConfig {
   outputFormat: OutputFormat;
   enableHistory: boolean;
   sessionName?: string;
+  checkpointId?: string;
   shouldStream: boolean;
   shouldWriteToFile: boolean;
   outputFile?: string;

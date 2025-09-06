@@ -15,6 +15,7 @@ export interface CliOptions {
   global?: boolean;
   verbose?: boolean;
   session?: string;  // Added for chat command support
+  checkpoint?: string;  // Added for checkpoint support
 }
 
 
