@@ -1,6 +1,6 @@
 {
   "name": "ygai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Yet Another Gen AI CLI Tool",
   "main": "dist/index.js",
   "repository": {
@@ -37,7 +37,6 @@
     "@langchain/langgraph-checkpoint-sqlite": "^0.2.1",
     "@langchain/mcp-adapters": "^0.6.0",
     "@types/better-sqlite3": "^7.6.13",
-    "better-sqlite3": "^12.2.0",
     "chalk": "^5.6.0",
     "commander": "^11.1.0",
     "exceljs": "^4.4.0",

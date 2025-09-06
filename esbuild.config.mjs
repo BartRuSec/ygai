@@ -17,8 +17,7 @@ const config = {
     'mammoth', 
     'officeparser',
     'exceljs',
-    'turndown',
-    'better-sqlite3'
+    'turndown'
   ]
 };
 

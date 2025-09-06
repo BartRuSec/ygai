@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { configurePromptCommand } from './prompt';
 import { configureProvidersCommand } from './llms-providers';
 import { configureChatCommand } from './chat';
+import { configureSessionCommand } from './session';
 import { version } from '../../package.json';
 
 /**
@@ -23,6 +24,7 @@ export const configureProgram = (): Command => {
   configurePromptCommand(program);
   configureProvidersCommand(program);
   configureChatCommand(program);
+  configureSessionCommand(program);
 
   // Default command (for backward compatibility)
   program

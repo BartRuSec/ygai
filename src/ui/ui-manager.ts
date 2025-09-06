@@ -97,6 +97,15 @@ export const formatOutput = async (content: string, shouldFormat: boolean): Prom
 };
 
 /**
+ * Output markdown content with proper formatting detection
+ */
+export const outputMarkdown = async (markdown: string): Promise<void> => {
+    const formatting = getOutputFormatting('markdown');
+    const output = await formatOutput(markdown, formatting.shouldFormatMarkdown);
+    console.log(output);
+};
+
+/**
  * Clean shutdown function - stops any active loading indicators
  */
 export const shutdownUI = (): void => {

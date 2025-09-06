@@ -41,6 +41,7 @@ export const resolveExecutionConfig = (
     outputFormat: resolveOutputFormat(options, promptConfig),
     enableHistory: !!options.session,
     sessionName: options.session,
+    checkpointId: options.checkpoint,
     shouldStream: options.stream === undefined ? false : true,
     shouldWriteToFile: !!options.out,
     outputFile: options.out,
