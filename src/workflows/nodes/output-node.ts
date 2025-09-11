@@ -104,10 +104,15 @@ export const createOutputNode = (): LangGraphNode => {
       // Update state if needed (only if stream was processed)
       if (processedStream) {
         const aiMessage = new AIMessage(content);
-        return { messages: [...state.messages, aiMessage] };
+        return { 
+          messages: [...state.messages, aiMessage],
+          stream:undefined //Clearing stream state
+         };
       }
       
-      return {};
+      return {
+        stream:undefined //Clearing stream state
+      };
       
     } catch (error) {
       stopLoading();
