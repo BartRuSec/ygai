@@ -145,16 +145,16 @@ export class SessionService {
       const messages = checkpointTuple.checkpoint?.channel_values?.messages || [];
       const messageData: Array<{ type: string; content: string; timestamp: Date }> = [];
       
-      // Use proper BaseMessage methods
+      // Extract messages - handle both BaseMessage instances and plain objects
       if (Array.isArray(messages)) {
         for (const msg of messages) {
-          if (msg instanceof BaseMessage) {
+          
             messageData.push({
-              type: msg.getType().toUpperCase(), // Proper LangGraph method
+              type: msg?.getType()?.toUpperCase(), // Proper LangGraph method
               content: msg.content?.toString() || '', // Proper content access
               timestamp: new Date(checkpointTuple.checkpoint.ts)
             });
-          }
+          
         }
       }
 
