@@ -1,17 +1,73 @@
 # Advanced Configuration Options
 
-This document describes advanced configuration features in ygai that allow for dynamic class instantiation and inline function definitions using `_type`, `_module`, and `_inline` properties.
+This document describes advanced configuration features in ygai that allow for environment variable substitution, dynamic class instantiation, and inline function definitions.
 
 ## Overview
 
 ygai supports advanced configuration patterns that enable dynamic loading and instantiation of classes, functions, and inline code within your configuration files. This is particularly useful for:
 
+- Referencing secrets from environment variables instead of hardcoding them
 - Creating custom HTTP agents with specific configurations
 - Dynamically loading and configuring third-party modules
 - Defining inline functions for specialized behavior
 - Advanced model provider customization
 
 > Inline functions are still in progress and might not working as expected
+
+## Environment Variable Substitution
+
+Any string value in `config.yaml` can reference an environment variable using the `${VAR_NAME}` syntax. ygai resolves these references at startup, before configuration validation runs.
+
+### Basic Syntax
+
+```yaml
+models:
+  default:
+    provider: "@langchain/openai"
+    model: "gpt-4o"
+    apiKey: "${OPENAI_API_KEY}"
+```
+
+### Multiple Substitutions in One Value
+
+A single string can contain multiple references:
+
+```yaml
+models:
+  custom:
+    provider: "@langchain/openai"
+    model: "gpt-4o"
+    apiKey: "${OPENAI_API_KEY}"
+    configuration:
+      baseURL: "https://${API_HOST}:${API_PORT}/v1"
+```
+
+### Works for Any Config Field
+
+Substitution is not limited to `apiKey` — it applies to any string value anywhere in the config, including URLs, file paths, and prompt text:
+
+```yaml
+models:
+  default:
+    provider: "@langchain/anthropic"
+    model: "${ANTHROPIC_MODEL}"
+    apiKey: "${ANTHROPIC_API_KEY}"
+
+prompts:
+  translate:
+    system:
+      file: "${PROMPTS_DIR}/translate.md"
+```
+
+### Error Behavior
+
+If a referenced environment variable is not set, ygai exits with a clear error before starting:
+
+```
+Error: Environment variable "OPENAI_API_KEY" (referenced as "${OPENAI_API_KEY}") is not set
+```
+
+Empty string (`""`) is a valid env var value and is allowed.
 
 ## Dynamic Class Loading with `_type` and `_module`
 
@@ -207,6 +263,12 @@ The system processes dynamic configurations in a depth-first manner to ensure de
 ## Error Handling
 
 ### Common Errors and Solutions
+
+#### Environment Variable Not Set
+```
+Error: Environment variable "OPENAI_API_KEY" (referenced as "${OPENAI_API_KEY}") is not set
+```
+**Solution**: Export the required environment variable before running ygai, e.g. `export OPENAI_API_KEY=sk-...`
 
 #### Module Not Found
 ```

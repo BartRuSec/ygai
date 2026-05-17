@@ -4,6 +4,8 @@ import { Config, PromptConfig, validateConfig, ConfigValidationError } from './s
 import { fileExists, readFile, getConfigPath, getHomeDirectory, resolvePath } from '../utils/file';
 import logger from '../utils/logger';
 
+const ENV_VAR_PATTERN = /\$\{([^}]+)\}/g;
+
 /**
  * Recursively resolves all 'file' properties in a config object to absolute paths (mutates in place)
  * @param obj The object to process (mutated in place)
@@ -33,6 +35,36 @@ const resolveFilePaths = (obj: any, configPath: string): void => {
 };
 
 /**
+ * Recursively substitutes ${VAR_NAME} references in all string values of a config object.
+ * Mutates the object in place. Throws ConfigValidationError if any referenced env var is not set.
+ */
+const substituteEnvVars = (obj: any): void => {
+  if (!obj || typeof obj !== 'object') return;
+
+  if (Array.isArray(obj)) {
+    obj.forEach(item => substituteEnvVars(item));
+    return;
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === 'string') {
+      obj[key] = value.replace(ENV_VAR_PATTERN, (_match, varName) => {
+        const envValue = process.env[varName];
+        if (envValue === undefined) {
+          throw new ConfigValidationError(
+            `Environment variable "${varName}" (referenced as "\${${varName}}") is not set`
+          );
+        }
+        logger.debug(`Config: substituted env var "${varName}" in key "${key}"`);
+        return envValue;
+      });
+    } else if (value && typeof value === 'object') {
+      substituteEnvVars(value);
+    }
+  }
+};
+
+/**
  * Loads the configuration from the specified file
  * @param filePath Path to the configuration file
  * @returns The loaded configuration or null if the file doesn't exist
@@ -47,6 +79,7 @@ const loadConfigFile = (filePath: string): Config | null => {
     logger.debug(`Loading configuration from: ${filePath}`);
     const content = readFile(filePath);
     const config = yaml.load(content) as any;
+    substituteEnvVars(config);
     const validatedConfig = validateConfig(config);
     
     // Resolve all file paths to absolute paths (mutates config)
