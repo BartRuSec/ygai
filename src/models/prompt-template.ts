@@ -46,8 +46,8 @@ export const createAndFormatChatPrompt = async (
       messages.push(...existingMessages);
     }
   
-    // Add current user message  
-    let humanMessage:HumanMessage[]=null;
+    // Add current user message
+    let humanMessage: HumanMessage[] = [];
     if (userPrompt) {
       // Use configured user template with variable substitution
       humanMessage= await HumanMessagePromptTemplate.fromTemplate(userPrompt).invoke(variables);

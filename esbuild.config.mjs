@@ -1,4 +1,5 @@
 import { build } from 'esbuild';
+import { statSync } from 'fs';
 
 const config = {
   entryPoints: ['src/cli.ts'],
@@ -24,6 +25,6 @@ const config = {
 
 build(config).then(result => {
   if (result.metafile) {
-    console.log(`📦 Bundle size: ${(require('fs').statSync('dist/cli.js').size / 1024 / 1024).toFixed(2)}MB`);
+    console.log(`📦 Bundle size: ${(statSync('dist/cli.js').size / 1024 / 1024).toFixed(2)}MB`);
   }
 }).catch(() => process.exit(1));
