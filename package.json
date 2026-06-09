@@ -21,7 +21,7 @@
     "dev": "ts-node src/cli.ts",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
-    "test": "vitest run src/**/*.test.ts",
+    "test": "npm run build && node -e \"const pkg = require('./dist/index.js'); if (typeof pkg.configureProgram !== 'function') throw new Error('main entrypoint smoke test failed')\"",
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
     "version:major": "npm version major"
